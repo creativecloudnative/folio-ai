@@ -37,11 +37,6 @@ async function ensureTable() {
   `
   // Add column to existing tables that predate this field
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE`
-  // Creator's folio is always public — identified by OWNER_EMAIL which is always set
-  const creatorEmail = process.env.OWNER_EMAIL ?? ''
-  if (creatorEmail) {
-    await sql`UPDATE folios SET is_public = TRUE WHERE email = ${creatorEmail} AND is_public = FALSE`
-  }
 }
 
 export function nameToSlug(name: string): string {
@@ -74,9 +69,11 @@ export async function upsertFolioOnLogin(
   if (existing.length > 0) return existing[0] as Folio
 
   const slug = await uniqueSlug(nameToSlug(name))
+  // Creator's folio (matched by OWNER_EMAIL) starts public; everyone else starts private
+  const isCreator = email === (process.env.OWNER_EMAIL ?? '')
   const rows = await sql`
-    INSERT INTO folios (owner_id, slug, name, email)
-    VALUES (${ownerId}, ${slug}, ${name}, ${email})
+    INSERT INTO folios (owner_id, slug, name, email, is_public)
+    VALUES (${ownerId}, ${slug}, ${name}, ${email}, ${isCreator})
     RETURNING id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
   `
   console.log('[folio-ai new-folio]', JSON.stringify({ slug, name, email }))

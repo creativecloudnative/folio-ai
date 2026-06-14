@@ -6,8 +6,9 @@ import StudioChat from './StudioChat'
 import DocumentsTable from './DocumentsTable'
 import ConversationHistory, { type StoredConversation } from './ConversationHistory'
 import CompositionsTab from './CompositionsTab'
+import SharingTab from './SharingTab'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing'
 
 type RestoredConversation = {
   id: string
@@ -20,9 +21,15 @@ type TokenBalance = { budget: number; used: number; remaining: number }
 type Props = {
   initialBalance?: TokenBalance | null
   folioSlug?: string
+  initialIsPublic?: boolean
 }
 
 const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = {
+  sharing: {
+    label: 'Sharing',
+    short: 'Control who can see your folio.',
+    detail: 'Public folios are visible to anyone with the link. Private folios are only visible to you when signed in. You can toggle this at any time — changes take effect immediately.',
+  },
   chat: {
     label: 'Chat',
     short: 'Draft content, manage documents, and control your portfolio with your AI assistant.',
@@ -45,9 +52,9 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
   },
 }
 
-const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions']
+const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing']
 
-export default function StudioTabs({ initialBalance, folioSlug }: Props) {
+export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
@@ -113,7 +120,7 @@ export default function StudioTabs({ initialBalance, folioSlug }: Props) {
     <div className="flex flex-col h-full">
       {/* Tab bar */}
       <div className="flex border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0">
-        {(['chat', 'history', 'documents', 'compositions'] as Tab[]).map((tab) => (
+        {(['chat', 'history', 'documents', 'compositions', 'sharing'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
@@ -166,6 +173,9 @@ export default function StudioTabs({ initialBalance, folioSlug }: Props) {
         )}
         {active === 'documents' && <DocumentsTable folioSlug={folioSlug} />}
         {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} />}
+        {active === 'sharing' && folioSlug && (
+          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} />
+        )}
       </div>
     </div>
   )
