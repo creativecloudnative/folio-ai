@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-**Repo:** `cbrown23/folio-ai` (currently private, will go public)
+**Repo:** `creativecloudnative/folio-ai` (currently private, will go public)
 **Domain:** `creativecloudnative.com`
 **Owner:** Principal Engineer & Container Platform Architect pivoting to Solutions Architect with AI systems design specialization
 

@@ -1,49 +1,39 @@
 /**
- * folio.config.ts — owner-specific configuration for folio-ai
+ * folio.config.ts — configuration schema for folio-ai
  *
- * Fork this repo and edit this file (plus /content) to personalize the site.
- * Do not modify core src/ files for personalization.
+ * All personal values are read from environment variables.
+ * Copy .env.local.example → .env.local and fill in your own values.
+ * This file is safe to commit — it contains no personal data.
  */
 
 const config = {
   owner: {
-    name: 'Clint Brown',
-    title: 'Principal Engineer & Container Platform Architect',
-    email: 'clint.brown.atx@gmail.com',
-    location: 'Austin, TX',
-    linkedin: 'https://linkedin.com/in/clintbrown',
-    github: 'https://github.com/cbrown23',
-    domain: 'creativecloudnative.com',
+    name:     process.env.OWNER_NAME     ?? 'Your Name',
+    title:    process.env.OWNER_TITLE    ?? 'Your Title',
+    email:    process.env.OWNER_EMAIL    ?? 'you@example.com',
+    location: process.env.OWNER_LOCATION ?? 'Your City',
+    linkedin: process.env.OWNER_LINKEDIN ?? '#',
+    github:   process.env.OWNER_GITHUB   ?? '#',
+    domain:   process.env.OWNER_DOMAIN   ?? 'example.com',
   },
 
   site: {
-    title: 'folio-ai',
-    description:
-      'AI-native portfolio — architecture case studies and an embedded AI assistant.',
-    url: 'https://creativecloudnative.com',
+    title:       process.env.SITE_TITLE       ?? 'folio-ai',
+    description: process.env.SITE_DESCRIPTION ?? 'AI-native portfolio — architecture case studies and an embedded AI assistant.',
+    url:         process.env.SITE_URL         || 'https://example.com',
   },
 
   agent: {
-    // Display name shown to visitors in the chat UI
-    assistantName: 'Folio',
-    // Brief persona shown as chat placeholder / greeting
-    greeting: "Hi — I can answer questions about Clint's work, or help you schedule time with him.",
+    assistantName: process.env.AGENT_NAME     ?? 'Portfolio Assistant',
+    greeting:      process.env.AGENT_GREETING ?? "Hi — I can answer questions about this portfolio, or help you schedule time.",
+    folioSlug:     process.env.FOLIO_SLUG     ?? '',
   },
 
   scheduling: {
-    // Cal.com username — used to build booking links
-    calUsername: 'clintbrown',
-    // Default event type slug from Cal.com
-    defaultEventSlug: '30min',
+    calUsername:      process.env.CAL_USERNAME      ?? '',
+    defaultEventSlug: process.env.CAL_DEFAULT_EVENT ?? '30min',
   },
-
-  content: {
-    // Paths are relative to /content
-    bioFile: 'bio.md',
-    resumeFile: 'resume.md',
-    caseStudiesDir: 'case-studies',
-  },
-} as const
+}
 
 export type FolioConfig = typeof config
 export default config

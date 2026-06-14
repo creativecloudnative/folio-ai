@@ -1,7 +1,8 @@
 'use client'
 
-import config from '../../folio.config'
 import { useState } from 'react'
+import AuthButton from '@/components/AuthButton'
+import Logo from '@/components/Logo'
 
 const links = [
   { label: 'Work', href: '#work' },
@@ -15,8 +16,8 @@ export default function Nav() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-slate-800 bg-[#020817]/90 backdrop-blur-sm">
       <nav className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-        <a href="#" className="text-sm font-semibold tracking-tight text-white">
-          {config.owner.name}
+        <a href="#">
+          <Logo className="text-sm font-semibold" />
         </a>
 
         {/* Desktop links */}
@@ -35,6 +36,9 @@ export default function Nav() {
             >
               Let&apos;s Talk
             </a>
+          </li>
+          <li>
+            <AuthButton />
           </li>
         </ul>
 

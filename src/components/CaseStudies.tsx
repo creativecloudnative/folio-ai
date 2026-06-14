@@ -1,4 +1,47 @@
-const studies = [
+import Link from 'next/link'
+import { sql } from '@/lib/db'
+
+type Study = {
+  title: string
+  slug: string
+  excerpt: string
+}
+
+function extractExcerpt(content: string): string {
+  const lines = content.split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('---') && !trimmed.startsWith('```')) {
+      return trimmed.length > 220 ? trimmed.slice(0, 217) + '…' : trimmed
+    }
+  }
+  return ''
+}
+
+async function fetchPublishedStudies(): Promise<Study[]> {
+  const ownerId = process.env.OWNER_ID ?? 'default'
+  try {
+    const rows = await sql`
+      SELECT DISTINCT ON (source) title, source, content
+      FROM documents
+      WHERE owner_id = ${ownerId}
+        AND type = 'case-study'
+        AND metadata->>'published' = 'true'
+      ORDER BY source, created_at ASC
+    `
+    return rows.map((row) => ({
+      title: row.title as string,
+      slug: (row.source as string)
+        .replace('content/case-studies/', '')
+        .replace('.md', ''),
+      excerpt: extractExcerpt(row.content as string),
+    }))
+  } catch {
+    return []
+  }
+}
+
+const PLACEHOLDER_STUDIES = [
   {
     tag: 'Container Platform',
     title: 'AI-Ready Container Platform at Scale',
@@ -24,13 +67,15 @@ const studies = [
     tag: 'AI Architecture',
     title: 'Agentic RAG Pipeline on Kubernetes',
     description:
-      'Greenfield architecture design: a production-grade RAG system with autoscaling inference, a vector store tier, and an agentic retrieval loop — designed but not yet deployed.',
+      'Greenfield architecture design: a production-grade RAG system with autoscaling inference, a vector store tier, and an agentic retrieval loop.',
     badges: ['RAG', 'Vector Store', 'LLM Inference', 'Greenfield'],
-    comingSoon: true,
   },
 ]
 
-export default function CaseStudies() {
+export default async function CaseStudies() {
+  const published = await fetchPublishedStudies()
+  const hasPublished = published.length > 0
+
   return (
     <section id="work" className="py-24 border-t border-slate-800/60">
       <div className="mx-auto max-w-6xl px-6">
@@ -43,47 +88,58 @@ export default function CaseStudies() {
           mattered.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {studies.map((s) => (
-            <div
-              key={s.title}
-              className={`group relative rounded-xl border p-6 flex flex-col gap-4 transition-colors ${
-                s.comingSoon
-                  ? 'border-slate-800 bg-slate-900/30 opacity-60'
-                  : 'border-slate-800 bg-slate-900/50 hover:border-indigo-800 hover:bg-slate-900/80 cursor-pointer'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-indigo-400 tracking-wide">{s.tag}</span>
-                {s.comingSoon && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border border-slate-700 text-slate-500">
-                    Coming soon
+        {hasPublished ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {published.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/case-studies/${s.slug}`}
+                className="group relative rounded-xl border border-slate-800 bg-slate-900/50 hover:border-indigo-800 hover:bg-slate-900/80 p-6 flex flex-col gap-4 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-indigo-400 tracking-wide">
+                    Architecture
                   </span>
+                </div>
+                <h3 className="text-lg font-semibold text-white leading-snug">{s.title}</h3>
+                {s.excerpt && (
+                  <p className="text-sm text-slate-400 leading-relaxed flex-1">{s.excerpt}</p>
                 )}
-              </div>
-
-              <h3 className="text-lg font-semibold text-white leading-snug">{s.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed flex-1">{s.description}</p>
-
-              <div className="flex flex-wrap gap-2">
-                {s.badges.map((b) => (
-                  <span
-                    key={b}
-                    className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400"
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-
-              {!s.comingSoon && (
                 <span className="text-xs text-indigo-400 group-hover:text-indigo-300 transition-colors">
                   Read case study →
                 </span>
-              )}
-            </div>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {PLACEHOLDER_STUDIES.map((s) => (
+              <div
+                key={s.title}
+                className="group relative rounded-xl border border-slate-800 bg-slate-900/30 opacity-60 p-6 flex flex-col gap-4"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-indigo-400 tracking-wide">{s.tag}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-slate-700 text-slate-500">
+                    Coming soon
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold text-white leading-snug">{s.title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed flex-1">{s.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  {s.badges.map((b) => (
+                    <span
+                      key={b}
+                      className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400"
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

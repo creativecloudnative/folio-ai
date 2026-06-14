@@ -1,6 +1,10 @@
+import { auth } from '@/auth'
 import config from '../../folio.config'
 
-export default function Hero() {
+export default async function Hero() {
+  const session = await auth()
+  const folioSlug = session?.user?.folioSlug
+
   return (
     <section className="relative min-h-screen flex items-center pt-16">
       {/* Subtle radial glow */}
@@ -41,6 +45,14 @@ export default function Hero() {
           >
             How This Site Works
           </a>
+          {folioSlug ? (
+            <a
+              href={`/folio-ai/${folioSlug}/design`}
+              className="px-6 py-3 rounded-md border border-indigo-700 hover:border-indigo-500 text-indigo-300 hover:text-indigo-200 font-medium transition-colors"
+            >
+              My Studio →
+            </a>
+          ) : null}
         </div>
 
         {/* Skill chips */}
@@ -61,6 +73,18 @@ export default function Hero() {
             </span>
           ))}
         </div>
+
+        {/* Platform callout for visitors */}
+        {!folioSlug && (
+          <div className="mt-12 rounded-xl border border-slate-700/50 bg-slate-900/40 px-5 py-4 max-w-md">
+            <p className="text-xs text-slate-500 mb-2">
+              <span className="text-indigo-400 font-medium">folio-ai</span> is an open-source template
+            </p>
+            <p className="text-sm text-slate-400">
+              Sign in to create your own AI-native portfolio with a built-in assistant.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   )

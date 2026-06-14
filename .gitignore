@@ -1,5 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# generated assets
+/public/logo-*.png
+
+# personal content — lives in the database, not the repo
+/content
+
 # dependencies
 /node_modules
 /.pnp
@@ -30,8 +36,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.local.example
 
 # vercel
 .vercel
