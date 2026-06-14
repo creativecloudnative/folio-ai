@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { getAllFolios } from '@/lib/folios'
+import { getAllFolios, getAllDocumentsForAdmin } from '@/lib/folios'
+import { isAdminEmail } from '@/lib/admin'
 import AdminFolioTable from '@/components/AdminFolioTable'
+import AdminDocumentsTable from '@/components/AdminDocumentsTable'
+import SignOutButton from '@/components/SignOutButton'
 
 export const metadata = {
   title: 'Admin — folio-ai',
@@ -11,15 +14,18 @@ export const metadata = {
 
 export default async function FolioAdminPage() {
   const session = await auth()
-  const ownerEmail = process.env.OWNER_EMAIL
 
   if (!session?.user?.email) redirect('/')
-  if (ownerEmail && session.user.email !== ownerEmail) redirect('/')
+  if (!isAdminEmail(session.user.email)) redirect('/')
 
-  const folios = await getAllFolios()
+  const [folios, documents] = await Promise.all([
+    getAllFolios(),
+    getAllDocumentsForAdmin(),
+  ])
 
   const totalBudget = folios.reduce((s, f) => s + f.token_budget, 0)
   const totalUsed = folios.reduce((s, f) => s + f.tokens_used, 0)
+  const totalDocs = documents.length
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -28,17 +34,26 @@ export default async function FolioAdminPage() {
           <div className="w-2 h-2 rounded-full bg-indigo-500" />
           <span className="text-sm font-semibold tracking-wide text-zinc-200">folio-ai Admin</span>
         </div>
-        <Link href="/" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-          ← Home
-        </Link>
+        <div className="flex items-center gap-4 text-xs text-zinc-500">
+          <Link href="/" className="hover:text-zinc-300 transition-colors">
+            ← Home
+          </Link>
+          <SignOutButton className="hover:text-zinc-300 transition-colors">
+            Sign out
+          </SignOutButton>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10">
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-4 gap-4 mb-10">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
             <p className="text-xs text-zinc-500 mb-1">Total Folios</p>
             <p className="text-3xl font-bold text-white">{folios.length}</p>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <p className="text-xs text-zinc-500 mb-1">Total Documents</p>
+            <p className="text-3xl font-bold text-white">{totalDocs}</p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
             <p className="text-xs text-zinc-500 mb-1">Tokens Used</p>
@@ -53,6 +68,10 @@ export default async function FolioAdminPage() {
         {/* Folio table */}
         <h2 className="text-lg font-semibold text-white mb-4">Folios</h2>
         <AdminFolioTable folios={folios} />
+
+        {/* Documents table */}
+        <h2 className="text-lg font-semibold text-white mt-12 mb-4">Documents</h2>
+        <AdminDocumentsTable documents={documents} folios={folios} />
       </main>
     </div>
   )

@@ -121,18 +121,29 @@ export default function AssistantCapabilitiesPage() {
 
         </div>
 
-        {/* Footer CTA */}
-        {folioSlug && (
-          <div className="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center">
-            <p className="text-sm text-zinc-400 mb-2">Ready to try it?</p>
+        {/* Footer CTAs */}
+        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+          {folioSlug && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center">
+              <p className="text-sm text-zinc-400 mb-2">Ready to try it?</p>
+              <Link
+                href={`/folio-ai/${folioSlug}`}
+                className="inline-flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Open the chat →
+              </Link>
+            </div>
+          )}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center">
+            <p className="text-sm text-zinc-400 mb-2">Curious how it works?</p>
             <Link
-              href={`/folio-ai/${folioSlug}`}
-              className="inline-flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+              href="/folio-ai/under-the-hood"
+              className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
             >
-              Open the chat on {ownerName}&apos;s portfolio →
+              Under the hood →
             </Link>
           </div>
-        )}
+        </div>
 
       </div>
     </div>

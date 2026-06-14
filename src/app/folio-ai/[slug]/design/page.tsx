@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getTokenBalance } from '@/lib/folios'
 import StudioTabs from '@/components/StudioTabs'
+import SignOutButton from '@/components/SignOutButton'
 
 export const metadata = {
   title: 'Design Studio — folio-ai',
@@ -45,11 +46,15 @@ export default async function FolioDesignPage({
           <Link href="/" className="hover:text-zinc-300 transition-colors">
             Home
           </Link>
+          <span>·</span>
+          <SignOutButton className="hover:text-zinc-300 transition-colors">
+            Sign out
+          </SignOutButton>
         </div>
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <StudioTabs initialBalance={balance} folioSlug={slug} />
+        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} />
       </div>
     </div>
   )

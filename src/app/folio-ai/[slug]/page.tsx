@@ -13,7 +13,7 @@ import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,6 +263,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   const isOwner = session?.user?.id === folio.owner_id
 
+  // Private folios are only visible to the owner
+  if (!folio.is_public && !isOwner) notFound()
+
   const [sections, bioExcerpt] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
@@ -298,10 +301,18 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                 >
                   Studio
                 </Link>
-                <SignOutButton className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
-                  Sign out
-                </SignOutButton>
+                <Link
+                  href={`/folio-ai/${slug}/settings`}
+                  className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  Settings
+                </Link>
               </>
+            )}
+            {session?.user && (
+              <SignOutButton className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                Sign out
+              </SignOutButton>
             )}
           </div>
         </div>
@@ -414,6 +425,13 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             <Link href="/folio-ai" className="text-zinc-500 hover:text-zinc-300 transition-colors">
               folio-ai
             </Link>
+            {' · '}
+            <Link href="/folio-ai/under-the-hood" className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              how it works
+            </Link>
+            {process.env.NEXT_PUBLIC_COMMIT_SHA && (
+              <>{' · '}<span title="build">{process.env.NEXT_PUBLIC_COMMIT_SHA}</span></>
+            )}
           </p>
         </div>
       </section>

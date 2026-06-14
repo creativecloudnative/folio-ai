@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import LinkedIn from 'next-auth/providers/linkedin'
 import Credentials from 'next-auth/providers/credentials'
 import { upsertFolioOnLogin } from '@/lib/folios'
+import { isAdminEmail } from '@/lib/admin'
 
 const devProvider = process.env.NODE_ENV === 'development'
   ? [Credentials({
@@ -20,7 +21,16 @@ const devProvider = process.env.NODE_ENV === 'development'
   : []
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [LinkedIn, ...devProvider],
+  providers: [
+    LinkedIn({
+      authorization: {
+        params: {
+          scope: 'openid profile email',
+        },
+      },
+    }),
+    ...devProvider,
+  ],
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account, profile }) {
@@ -28,7 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (profile) {
         token.sub = profile.sub as string
         token.picture = profile.picture as string
-        if (profile.name && profile.email) {
+        if (profile.name && profile.email && !isAdminEmail(profile.email as string)) {
           try {
             const folio = await upsertFolioOnLogin(
               token.sub as string,
@@ -45,7 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Dev credentials — user is the object returned by authorize()
       if (account?.type === 'credentials' && user) {
         token.sub = user.id as string
-        if (user.name && user.email) {
+        if (user.name && user.email && !isAdminEmail(user.email)) {
           try {
             const folio = await upsertFolioOnLogin(user.id as string, user.name, user.email)
             token.folioSlug = folio.slug
