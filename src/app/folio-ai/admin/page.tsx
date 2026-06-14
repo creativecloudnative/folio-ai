@@ -5,6 +5,7 @@ import { getAllFolios, getAllDocumentsForAdmin } from '@/lib/folios'
 import { isAdminEmail } from '@/lib/admin'
 import AdminFolioTable from '@/components/AdminFolioTable'
 import AdminDocumentsTable from '@/components/AdminDocumentsTable'
+import SignOutButton from '@/components/SignOutButton'
 
 export const metadata = {
   title: 'Admin — folio-ai',
@@ -33,9 +34,14 @@ export default async function FolioAdminPage() {
           <div className="w-2 h-2 rounded-full bg-indigo-500" />
           <span className="text-sm font-semibold tracking-wide text-zinc-200">folio-ai Admin</span>
         </div>
-        <Link href="/" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-          ← Home
-        </Link>
+        <div className="flex items-center gap-4 text-xs text-zinc-500">
+          <Link href="/" className="hover:text-zinc-300 transition-colors">
+            ← Home
+          </Link>
+          <SignOutButton className="hover:text-zinc-300 transition-colors">
+            Sign out
+          </SignOutButton>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10">

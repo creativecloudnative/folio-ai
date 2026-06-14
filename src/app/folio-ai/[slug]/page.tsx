@@ -307,10 +307,12 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                 >
                   Settings
                 </Link>
-                <SignOutButton className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
-                  Sign out
-                </SignOutButton>
               </>
+            )}
+            {session?.user && (
+              <SignOutButton className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                Sign out
+              </SignOutButton>
             )}
           </div>
         </div>
