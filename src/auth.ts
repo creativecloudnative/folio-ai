@@ -27,6 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         params: {
           scope: 'openid profile email',
           prompt: 'login',
+          max_age: 0,
         },
       },
     }),
