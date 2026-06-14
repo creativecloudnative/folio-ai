@@ -37,7 +37,7 @@ export default function AuthButton() {
 
   return (
     <button
-      onClick={() => signIn('linkedin', { callbackUrl: window.location.href })}
+      onClick={() => signIn('linkedin', { callbackUrl: window.location.href }, { prompt: 'login' })}
       className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white transition-colors"
     >
       <LinkedInIcon className="w-4 h-4" />

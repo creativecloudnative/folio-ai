@@ -10,7 +10,7 @@ type Props = {
 export default function SignInButton({ className, children }: Props) {
   return (
     <button
-      onClick={() => signIn('linkedin', { callbackUrl: window.location.href })}
+      onClick={() => signIn('linkedin', { callbackUrl: window.location.href }, { prompt: 'login' })}
       className={className}
     >
       {children}
