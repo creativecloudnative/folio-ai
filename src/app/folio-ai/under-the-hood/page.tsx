@@ -28,42 +28,55 @@ Both agents are built on Claude, use explicit tool definitions, and follow an ag
 \`\`\`mermaid
 graph TD
   subgraph Browser
-    A[Visitor] -->|chat message| B[ChatButton.tsx]
-    O[Owner] -->|studio session| P[StudioChat.tsx]
+    A[Visitor]
+    O[Owner]
   end
 
-  subgraph Vercel ["Next.js on Vercel"]
-    B -->|SSE stream| C[/api/folio-ai/slug/chat]
-    P -->|SSE stream| Q[/api/studio/chat]
-    C --> D[Visitor Agent Loop]
-    Q --> R[Studio Agent Loop]
-    D -->|tool: search_portfolio| E[RAG Retrieval]
-    D -->|tool: schedule_meeting| F[Cal.com API]
-    D -->|tool: take_note| G[Neon Postgres]
-    R -->|tool: save_content| E
-    R -->|tool: save_memory| G
-    E --> H[pgvector similarity search]
+  subgraph App[Next.js on Vercel]
+    B[ChatButton]
+    P[StudioChat]
+    C[folio chat route]
+    Q[studio chat route]
+    D[Visitor Agent]
+    R[Studio Agent]
+    E[RAG Retrieval]
+    F[Cal.com API]
   end
 
-  subgraph AI ["AI Services"]
-    D <-->|messages + tools| I[Claude API]
-    R <-->|messages + tools| I
-    E -->|embed query| J[Voyage AI]
+  subgraph AIServices[AI Services]
+    I[Claude API]
+    J[Voyage AI]
   end
 
-  subgraph Data ["Data Layer — Neon Postgres"]
-    G
-    H
-    K[(documents + embeddings)]
-    L[(folios + conversations)]
-    G --> K
-    H --> K
-    G --> L
+  subgraph Data[Data Layer]
+    G[(Neon Postgres)]
+    K[(pgvector index)]
   end
 
-  subgraph Auth
-    M[Auth.js v5] -->|LinkedIn OAuth| O
+  subgraph AuthLayer[Auth]
+    M[Auth.js + LinkedIn]
   end
+
+  A -->|message| B
+  O -->|studio session| P
+  O -->|sign in| M
+  B -->|SSE stream| C
+  P -->|SSE stream| Q
+  C --> D
+  Q --> R
+  D -->|search_portfolio| E
+  D -->|schedule_meeting| F
+  D -->|take_note| G
+  R -->|save_content| E
+  R -->|save_memory| G
+  D -->|messages + tools| I
+  I -->|tool calls + text| D
+  R -->|messages + tools| I
+  I -->|tool calls + text| R
+  E -->|embed query| J
+  J -->|vector| K
+  K -->|top-k chunks| E
+  E --> G
 \`\`\`
 
 ---
