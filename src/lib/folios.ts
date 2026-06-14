@@ -118,6 +118,38 @@ export async function getTokenBalance(ownerId: string): Promise<TokenBalance> {
   }
 }
 
+export type AdminDocument = {
+  owner_id: string
+  owner_name: string
+  owner_slug: string
+  owner_email: string
+  type: string
+  title: string
+  source: string
+  chunk_count: number
+  created_at: string
+}
+
+export async function getAllDocumentsForAdmin(): Promise<AdminDocument[]> {
+  const rows = await sql`
+    SELECT
+      d.owner_id,
+      COALESCE(f.name,  d.owner_id) AS owner_name,
+      COALESCE(f.slug,  '')         AS owner_slug,
+      COALESCE(f.email, '')         AS owner_email,
+      d.type,
+      d.title,
+      d.source,
+      COUNT(*)::int                 AS chunk_count,
+      MIN(d.created_at)             AS created_at
+    FROM documents d
+    LEFT JOIN folios f ON f.owner_id = d.owner_id
+    GROUP BY d.owner_id, f.name, f.slug, f.email, d.type, d.title, d.source
+    ORDER BY f.name, d.type, MIN(d.created_at) DESC
+  `
+  return rows as AdminDocument[]
+}
+
 export async function consumeTokens(ownerId: string, amount: number): Promise<void> {
   await sql`
     UPDATE folios SET tokens_used = tokens_used + ${amount} WHERE owner_id = ${ownerId}

@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { getAllFolios } from '@/lib/folios'
+import { getAllFolios, getAllDocumentsForAdmin } from '@/lib/folios'
 import AdminFolioTable from '@/components/AdminFolioTable'
+import AdminDocumentsTable from '@/components/AdminDocumentsTable'
 
 export const metadata = {
   title: 'Admin — folio-ai',
@@ -16,10 +17,14 @@ export default async function FolioAdminPage() {
   if (!session?.user?.email) redirect('/')
   if (ownerEmail && session.user.email !== ownerEmail) redirect('/')
 
-  const folios = await getAllFolios()
+  const [folios, documents] = await Promise.all([
+    getAllFolios(),
+    getAllDocumentsForAdmin(),
+  ])
 
   const totalBudget = folios.reduce((s, f) => s + f.token_budget, 0)
   const totalUsed = folios.reduce((s, f) => s + f.tokens_used, 0)
+  const totalDocs = documents.length
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -35,10 +40,14 @@ export default async function FolioAdminPage() {
 
       <main className="mx-auto max-w-5xl px-6 py-10">
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-4 gap-4 mb-10">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
             <p className="text-xs text-zinc-500 mb-1">Total Folios</p>
             <p className="text-3xl font-bold text-white">{folios.length}</p>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <p className="text-xs text-zinc-500 mb-1">Total Documents</p>
+            <p className="text-3xl font-bold text-white">{totalDocs}</p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
             <p className="text-xs text-zinc-500 mb-1">Tokens Used</p>
@@ -53,6 +62,10 @@ export default async function FolioAdminPage() {
         {/* Folio table */}
         <h2 className="text-lg font-semibold text-white mb-4">Folios</h2>
         <AdminFolioTable folios={folios} />
+
+        {/* Documents table */}
+        <h2 className="text-lg font-semibold text-white mt-12 mb-4">Documents</h2>
+        <AdminDocumentsTable documents={documents} folios={folios} />
       </main>
     </div>
   )
