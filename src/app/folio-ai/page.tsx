@@ -203,6 +203,15 @@ export default async function FolioHomePage() {
             </div>
           ))}
         </div>
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/folio-ai/under-the-hood"
+            className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors"
+          >
+            Curious how the AI works? See the architecture →
+          </Link>
+        </div>
       </section>
 
       {/* CTA */}
