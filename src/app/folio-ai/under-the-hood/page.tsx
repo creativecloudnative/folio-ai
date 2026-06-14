@@ -26,13 +26,13 @@ Both agents are built on Claude, use explicit tool definitions, and follow an ag
 ## System Architecture
 
 \`\`\`mermaid
-graph TD
+flowchart TD
   subgraph Browser
     A[Visitor]
     O[Owner]
   end
 
-  subgraph App[Next.js on Vercel]
+  subgraph App["Next.js on Vercel"]
     B[ChatButton]
     P[StudioChat]
     C[folio chat route]
@@ -40,21 +40,21 @@ graph TD
     D[Visitor Agent]
     R[Studio Agent]
     E[RAG Retrieval]
-    F[Cal.com API]
+    F["Cal.com API"]
   end
 
-  subgraph AIServices[AI Services]
+  subgraph AIServices["AI Services"]
     I[Claude API]
     J[Voyage AI]
   end
 
-  subgraph Data[Data Layer]
+  subgraph Data["Data Layer"]
     G[(Neon Postgres)]
     K[(pgvector index)]
   end
 
   subgraph AuthLayer[Auth]
-    M[Auth.js + LinkedIn]
+    M["Auth.js via LinkedIn"]
   end
 
   A -->|message| B
@@ -64,15 +64,15 @@ graph TD
   P -->|SSE stream| Q
   C --> D
   Q --> R
-  D -->|search_portfolio| E
-  D -->|schedule_meeting| F
-  D -->|take_note| G
-  R -->|save_content| E
-  R -->|save_memory| G
-  D -->|messages + tools| I
-  I -->|tool calls + text| D
-  R -->|messages + tools| I
-  I -->|tool calls + text| R
+  D -->|search portfolio| E
+  D -->|schedule meeting| F
+  D -->|take note| G
+  R -->|save content| E
+  R -->|save memory| G
+  D -->|messages and tools| I
+  I -->|tool calls and text| D
+  R -->|messages and tools| I
+  I -->|tool calls and text| R
   E -->|embed query| J
   J -->|vector| K
   K -->|top-k chunks| E
