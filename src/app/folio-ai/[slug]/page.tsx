@@ -427,6 +427,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             <Link href="/folio-ai/under-the-hood" className="text-zinc-500 hover:text-zinc-300 transition-colors">
               how it works
             </Link>
+            {process.env.NEXT_PUBLIC_COMMIT_SHA && (
+              <>{' · '}<span title="build">{process.env.NEXT_PUBLIC_COMMIT_SHA}</span></>
+            )}
           </p>
         </div>
       </section>
