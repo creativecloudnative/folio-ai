@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
-import { getFolioBySlug } from '@/lib/folios'
+import { getFolioBySlug, setFolioVisibility } from '@/lib/folios'
 import {
   getPublishedCompositionsForFolio,
   getFolioComposition,
@@ -12,7 +13,6 @@ import { sql } from '@/lib/db'
 import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
-import VisibilityToggle from '@/components/VisibilityToggle'
 
 export const revalidate = 300
 
@@ -267,6 +267,15 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
   // Private folios are only visible to the owner
   if (!folio.is_public && !isOwner) notFound()
 
+  async function toggleVisibility() {
+    'use server'
+    const f = await getFolioBySlug(slug)
+    if (!f || !isOwner) return
+    await setFolioVisibility(f.owner_id, !f.is_public)
+    revalidatePath(`/folio-ai/${slug}`)
+    redirect(`/folio-ai/${slug}`)
+  }
+
   const [sections, bioExcerpt] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
@@ -295,7 +304,19 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             <a href="#contact" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:block">Contact</a>
             {isOwner && (
               <>
-                <VisibilityToggle slug={slug} initialIsPublic={folio.is_public} />
+                <form action={toggleVisibility}>
+                  <button
+                    type="submit"
+                    title={folio.is_public ? 'Visible to anyone — click to make private' : 'Only you can see this — click to make public'}
+                    className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                      folio.is_public
+                        ? 'border-emerald-700/60 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40'
+                        : 'border-zinc-600 bg-zinc-900/60 text-zinc-400 hover:border-zinc-400'
+                    }`}
+                  >
+                    {folio.is_public ? '● Public' : '○ Private'}
+                  </button>
+                </form>
                 <RefreshFolioButton />
                 <Link
                   href={`/folio-ai/${slug}/design`}
