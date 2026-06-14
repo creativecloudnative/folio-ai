@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { getAllFolios, getAllDocumentsForAdmin } from '@/lib/folios'
+import { isAdminEmail } from '@/lib/admin'
 import AdminFolioTable from '@/components/AdminFolioTable'
 import AdminDocumentsTable from '@/components/AdminDocumentsTable'
 
@@ -12,10 +13,9 @@ export const metadata = {
 
 export default async function FolioAdminPage() {
   const session = await auth()
-  const ownerEmail = process.env.OWNER_EMAIL
 
   if (!session?.user?.email) redirect('/')
-  if (ownerEmail && session.user.email !== ownerEmail) redirect('/')
+  if (!isAdminEmail(session.user.email)) redirect('/')
 
   const [folios, documents] = await Promise.all([
     getAllFolios(),

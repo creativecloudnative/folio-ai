@@ -33,6 +33,12 @@ const config = {
     calUsername:      process.env.CAL_USERNAME      ?? '',
     defaultEventSlug: process.env.CAL_DEFAULT_EVENT ?? '30min',
   },
+
+  admin: {
+    // Email of the platform administrator — separate from the folio owner.
+    // Set ADMIN_EMAIL in your deployment environment.
+    email: process.env.ADMIN_EMAIL ?? '',
+  },
 }
 
 export type FolioConfig = typeof config

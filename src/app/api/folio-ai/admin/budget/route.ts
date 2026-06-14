@@ -1,17 +1,13 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { sql } from '@/lib/db'
+import { isAdminEmail } from '@/lib/admin'
 
 export const dynamic = 'force-dynamic'
 
-function isAdmin(email: string | null | undefined): boolean {
-  const ownerEmail = process.env.OWNER_EMAIL
-  return !!ownerEmail && email === ownerEmail
-}
-
 export async function PATCH(req: NextRequest) {
   const session = await auth()
-  if (!isAdmin(session?.user?.email)) {
+  if (!isAdminEmail(session?.user?.email)) {
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
