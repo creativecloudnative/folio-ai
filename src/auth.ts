@@ -20,7 +20,10 @@ const devProvider = process.env.NODE_ENV === 'development'
   : []
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [LinkedIn, ...devProvider],
+  providers: [
+    LinkedIn({ authorization: { params: { prompt: 'login' } } }),
+    ...devProvider,
+  ],
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account, profile }) {
