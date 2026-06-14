@@ -13,7 +13,7 @@ import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
