@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { nameToSlug } from '@/lib/folios'
 import config from '../../../folio.config'
 import SignInButton from '@/components/SignInButton'
+import SignOutButton from '@/components/SignOutButton'
 
 export const metadata = {
   title: 'folio-ai — AI-native portfolios for engineers',
@@ -78,13 +79,20 @@ export default async function FolioHomePage() {
           >
             GitHub
           </a>
-          {folioSlug ? (
-            <Link
-              href={`/folio-ai/${folioSlug}`}
-              className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-            >
-              My folio
-            </Link>
+          {session?.user ? (
+            <>
+              {folioSlug && (
+                <Link
+                  href={`/folio-ai/${folioSlug}`}
+                  className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                >
+                  My folio
+                </Link>
+              )}
+              <SignOutButton className="text-sm text-zinc-400 hover:text-white transition-colors">
+                Sign out
+              </SignOutButton>
+            </>
           ) : (
             <SignInButton className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
               Sign in
@@ -125,11 +133,11 @@ export default async function FolioHomePage() {
               >
                 Go to my folio →
               </Link>
-            ) : (
+            ) : !session?.user ? (
               <SignInButton className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">
                 Create your folio
               </SignInButton>
-            )}
+            ) : null}
             <Link
               href={`/folio-ai/${creatorSlug}`}
               className="px-6 py-3 rounded-md border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white font-medium transition-colors"
