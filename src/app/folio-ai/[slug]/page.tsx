@@ -12,6 +12,7 @@ import { sql } from '@/lib/db'
 import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
+import VisibilityToggle from '@/components/VisibilityToggle'
 
 export const revalidate = 300
 
@@ -263,6 +264,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   const isOwner = session?.user?.id === folio.owner_id
 
+  // Private folios are only visible to the owner
+  if (!folio.is_public && !isOwner) notFound()
+
   const [sections, bioExcerpt] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
@@ -291,6 +295,7 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             <a href="#contact" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:block">Contact</a>
             {isOwner && (
               <>
+                <VisibilityToggle slug={slug} initialIsPublic={folio.is_public} />
                 <RefreshFolioButton />
                 <Link
                   href={`/folio-ai/${slug}/design`}
