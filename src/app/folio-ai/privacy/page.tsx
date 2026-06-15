@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import config from '../../../folio.config'
+import config from '../../../../folio.config'
 
 export const metadata = {
   title: 'Privacy Policy — folio-ai',

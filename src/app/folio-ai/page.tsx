@@ -272,7 +272,7 @@ export default async function FolioHomePage() {
         <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-600">
           <span>folio-ai — open source, MIT licensed</span>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
+            <Link href="/folio-ai/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
             <a href="https://github.com/creativecloudnative/folio-ai" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">GitHub</a>
             <Link href={`/folio-ai/${creatorSlug}`} className="hover:text-zinc-400 transition-colors">Example folio</Link>
           </div>
