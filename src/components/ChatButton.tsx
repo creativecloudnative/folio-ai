@@ -429,7 +429,7 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
               </button>
               <p className="text-xs text-slate-600 max-w-[220px]">
                 We only use your name and email to identify you.{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-400 transition-colors">
+                <a href="/folio-ai/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-400 transition-colors">
                   Privacy policy
                 </a>
               </p>
