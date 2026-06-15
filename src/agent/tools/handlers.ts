@@ -85,7 +85,11 @@ export async function executeTool(
 
     case 'schedule_meeting': {
       const topic = input.topic as string | undefined
-      const calUsername = folioCalUsername ?? process.env.CAL_USERNAME ?? config.scheduling.calUsername
+      // undefined = legacy /api/chat route (fall back to env var)
+      // null      = folio-ai route with no cal_username set (do not fall back)
+      const calUsername = folioCalUsername !== undefined
+        ? folioCalUsername
+        : (process.env.CAL_USERNAME ?? config.scheduling.calUsername)
       if (!calUsername) {
         return 'Scheduling is not configured for this portfolio yet. Reach out directly to arrange a time.'
       }

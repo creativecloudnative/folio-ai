@@ -61,8 +61,11 @@ export async function POST(
 
   const folioOwnerEmail = folio.email
   const folioOwnerName = folio.name
-  const folioCalUsername = folio.cal_username
   const isSiteOwner = folioOwnerEmail === (process.env.OWNER_EMAIL ?? '')
+  // Site owner falls back to CAL_USERNAME env var so their folio works without Studio config.
+  // All other folios get exactly what's in the DB — null means "not configured".
+  const folioCalUsername = folio.cal_username
+    ?? (isSiteOwner ? (process.env.CAL_USERNAME ?? null) : null)
   const session = await auth()
 
   let body: { messages: Anthropic.MessageParam[] }
