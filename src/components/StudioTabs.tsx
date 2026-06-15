@@ -22,6 +22,7 @@ type Props = {
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
+  initialInvites?: string[]
 }
 
 const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = {
@@ -54,7 +55,7 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
 
 const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing']
 
-export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic }: Props) {
+export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
@@ -174,7 +175,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic 
         {active === 'documents' && <DocumentsTable folioSlug={folioSlug} />}
         {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} />}
         {active === 'sharing' && folioSlug && (
-          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} />
+          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} initialInvites={initialInvites ?? []} />
         )}
       </div>
     </div>

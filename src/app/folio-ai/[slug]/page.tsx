@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug } from '@/lib/folios'
+import { isFolioInvited } from '@/lib/invites'
 import {
   getPublishedCompositionsForFolio,
   getFolioComposition,
@@ -263,8 +264,12 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   const isOwner = session?.user?.id === folio.owner_id
 
-  // Private folios are only visible to the owner
-  if (!folio.is_public && !isOwner) notFound()
+  // Private folios are visible to the owner and explicitly invited emails
+  const isInvited = !folio.is_public && !isOwner && !!session?.user?.email
+    ? await isFolioInvited(folio.id, session.user.email!)
+    : false
+
+  if (!folio.is_public && !isOwner && !isInvited) notFound()
 
   const [sections, bioExcerpt] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
