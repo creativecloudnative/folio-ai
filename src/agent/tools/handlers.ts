@@ -13,6 +13,9 @@ export async function executeTool(
   name: string,
   input: Record<string, unknown>,
   session: AuthSession,
+  folioOwnerEmail: string,
+  folioOwnerName: string,
+  folioCalUsername?: string | null,
 ): Promise<string> {
   switch (name) {
     case 'send_note': {
@@ -26,18 +29,18 @@ export async function executeTool(
       }
 
       try {
-        await sendNoteToOwner({ visitorName, visitorEmail, subject, message })
+        await sendNoteToOwner({ visitorName, visitorEmail, subject, message, ownerEmail: folioOwnerEmail })
         console.log('[folio-ai note-sent]', JSON.stringify({
           timestamp: new Date().toISOString(),
           from: visitorEmail,
           name: visitorName,
           subject,
         }))
-        return `Your note has been sent to ${config.owner.name}. He'll receive it at his email with your address as the reply-to, so he can respond directly.`
+        return `Your note has been sent to ${folioOwnerName}. They'll receive it at their email with your address as the reply-to, so they can respond directly.`
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown error'
         console.error('[folio-ai note-error]', msg)
-        return `Sorry, the note couldn't be delivered right now (${msg}). You can reach ${config.owner.name} directly at ${config.owner.email}.`
+        return `Sorry, the note couldn't be delivered right now (${msg}). You can try reaching out directly via the contact info on this page.`
       }
     }
 
@@ -82,7 +85,14 @@ export async function executeTool(
 
     case 'schedule_meeting': {
       const topic = input.topic as string | undefined
-      const calUsername = process.env.CAL_USERNAME ?? config.scheduling.calUsername
+      // undefined = legacy /api/chat route (fall back to env var)
+      // null      = folio-ai route with no cal_username set (do not fall back)
+      const calUsername = folioCalUsername !== undefined
+        ? folioCalUsername
+        : (process.env.CAL_USERNAME ?? config.scheduling.calUsername)
+      if (!calUsername) {
+        return 'Scheduling is not configured for this portfolio yet. Reach out directly to arrange a time.'
+      }
       const baseUrl = `https://cal.com/${calUsername}/${config.scheduling.defaultEventSlug}`
 
       const params = new URLSearchParams()

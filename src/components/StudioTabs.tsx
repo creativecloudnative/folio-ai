@@ -7,8 +7,9 @@ import DocumentsTable from './DocumentsTable'
 import ConversationHistory, { type StoredConversation } from './ConversationHistory'
 import CompositionsTab from './CompositionsTab'
 import SharingTab from './SharingTab'
+import IntegrationsTab from './IntegrationsTab'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations'
 
 type RestoredConversation = {
   id: string
@@ -22,6 +23,8 @@ type Props = {
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
+  initialInvites?: string[]
+  initialCalUsername?: string | null
 }
 
 const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = {
@@ -50,11 +53,16 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Build and publish pages by combining documents and other compositions.',
     detail: `A composition is a named, publishable page assembled from one or more source documents — and optionally from other compositions. When you hit Publish, Claude reads all the source material and generates a polished Markdown page in one pass. Compositions can nest: include another composition as an item and its compiled content is embedded inline. The Folio Page composition is special — its items determine which compositions appear as sections on your public portfolio page, and in what order. Use "Apply to folio" to push layout changes live without recompiling content.`,
   },
+  integrations: {
+    label: 'Integrations',
+    short: 'Connect external services so your AI assistant can take real-world actions.',
+    detail: 'Connect Cal.com to enable meeting scheduling directly from the chat. When a Cal.com username is set, your assistant can generate pre-filled booking links for visitors. Without it, the scheduling capability is hidden from the assistant entirely.',
+  },
 }
 
-const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing']
+const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations']
 
-export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic }: Props) {
+export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites, initialCalUsername }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
@@ -120,7 +128,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic 
     <div className="flex flex-col h-full">
       {/* Tab bar */}
       <div className="flex border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0">
-        {(['chat', 'history', 'documents', 'compositions', 'sharing'] as Tab[]).map((tab) => (
+        {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
@@ -174,7 +182,10 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic 
         {active === 'documents' && <DocumentsTable folioSlug={folioSlug} />}
         {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} />}
         {active === 'sharing' && folioSlug && (
-          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} />
+          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} initialInvites={initialInvites ?? []} />
+        )}
+        {active === 'integrations' && folioSlug && (
+          <IntegrationsTab folioSlug={folioSlug} initialCalUsername={initialCalUsername ?? null} />
         )}
       </div>
     </div>

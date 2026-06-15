@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getTokenBalance } from '@/lib/folios'
+import { getFolioInvites } from '@/lib/invites'
 import StudioTabs from '@/components/StudioTabs'
 import SignOutButton from '@/components/SignOutButton'
 
@@ -22,7 +23,10 @@ export default async function FolioDesignPage({
   if (!folio) notFound()
   if (folio.owner_id !== session.user.id) redirect(`/folio-ai/${slug}`)
 
-  const balance = await getTokenBalance(folio.owner_id)
+  const [balance, invites] = await Promise.all([
+    getTokenBalance(folio.owner_id),
+    getFolioInvites(folio.id),
+  ])
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100">
@@ -39,7 +43,7 @@ export default async function FolioDesignPage({
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <span>{session.user.name}</span>
           <span>·</span>
-          <a href={`/folio-ai/${slug}`} className="hover:text-zinc-300 transition-colors">
+          <a href={`/folio-ai/${slug}`} className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
             View folio
           </a>
           <span>·</span>
@@ -54,7 +58,7 @@ export default async function FolioDesignPage({
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} />
+        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} initialCalUsername={folio.cal_username} />
       </div>
     </div>
   )

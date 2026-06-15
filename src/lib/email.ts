@@ -23,15 +23,16 @@ export type NoteEmailParams = {
   visitorEmail: string
   subject: string
   message: string
+  ownerEmail: string
 }
 
 export async function sendNoteToOwner(params: NoteEmailParams): Promise<void> {
-  const { visitorName, visitorEmail, subject, message } = params
+  const { visitorName, visitorEmail, subject, message, ownerEmail } = params
 
   await getTransport().sendMail({
     from: `${config.agent.assistantName} <${FROM_EMAIL}>`,
     replyTo: `${visitorName} <${visitorEmail}>`,
-    to: process.env.OWNER_EMAIL ?? config.owner.email,
+    to: ownerEmail,
     subject: `Note from ${visitorName}: ${subject}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">

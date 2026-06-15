@@ -17,6 +17,15 @@ const TYPE_COLORS: Record<string, string> = {
   'adr':          'bg-orange-900/50 text-orange-300 border-orange-700/50',
 }
 
+type Chunk = { id: string; type: string; title: string; source: string; content: string; created_at: string }
+
+type ViewerState = {
+  doc: AdminDocument
+  chunks: Chunk[]
+  loading: boolean
+  error: string | null
+}
+
 export default function AdminDocumentsTable({
   documents,
   folios,
@@ -26,6 +35,7 @@ export default function AdminDocumentsTable({
 }) {
   const [ownerId, setOwnerId] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [viewer, setViewer] = useState<ViewerState | null>(null)
 
   const filtered = documents.filter((d) => {
     if (ownerId !== 'all' && d.owner_id !== ownerId) return false
@@ -45,6 +55,20 @@ export default function AdminDocumentsTable({
     acc[d.type] = (acc[d.type] ?? 0) + 1
     return acc
   }, {})
+
+  async function openViewer(doc: AdminDocument) {
+    setViewer({ doc, chunks: [], loading: true, error: null })
+    try {
+      const res = await fetch(
+        `/api/folio-ai/admin/documents?owner_id=${encodeURIComponent(doc.owner_id)}&source=${encodeURIComponent(doc.source)}`
+      )
+      if (!res.ok) throw new Error('Failed to load')
+      const data = await res.json()
+      setViewer((v) => v ? { ...v, chunks: data.chunks, loading: false } : null)
+    } catch {
+      setViewer((v) => v ? { ...v, loading: false, error: 'Failed to load document content.' } : null)
+    }
+  }
 
   return (
     <div>
@@ -130,8 +154,14 @@ export default function AdminDocumentsTable({
                         {doc.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-200 max-w-xs truncate" title={doc.title}>
-                      {doc.title}
+                    <td className="px-4 py-3 max-w-xs">
+                      <button
+                        onClick={() => openViewer(doc)}
+                        className="text-zinc-200 hover:text-indigo-400 transition-colors text-left truncate block w-full"
+                        title={`View: ${doc.title}`}
+                      >
+                        {doc.title}
+                      </button>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-zinc-500 max-w-xs truncate" title={doc.source}>
                       {doc.source}
@@ -156,6 +186,59 @@ export default function AdminDocumentsTable({
           </table>
         </div>
       </div>
+
+      {/* Viewer modal */}
+      {viewer && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setViewer(null)}
+        >
+          <div
+            className="relative h-full w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-zinc-800 shrink-0">
+              <div className="min-w-0">
+                <p className="text-xs text-zinc-500 mb-1">
+                  {viewer.doc.owner_name} · {viewer.doc.type}
+                </p>
+                <h2 className="text-base font-semibold text-white leading-tight">{viewer.doc.title}</h2>
+                <p className="text-xs text-zinc-600 font-mono mt-1 truncate">{viewer.doc.source}</p>
+              </div>
+              <button
+                onClick={() => setViewer(null)}
+                className="shrink-0 text-zinc-500 hover:text-white transition-colors mt-0.5"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {viewer.loading && (
+                <p className="text-sm text-zinc-500 animate-pulse">Loading chunks…</p>
+              )}
+              {viewer.error && (
+                <p className="text-sm text-red-400">{viewer.error}</p>
+              )}
+              {!viewer.loading && !viewer.error && viewer.chunks.map((chunk, i) => (
+                <div key={chunk.id} className="space-y-2">
+                  <p className="text-xs text-zinc-600 font-mono">
+                    chunk {i + 1} of {viewer.chunks.length}
+                  </p>
+                  <pre className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap font-sans bg-zinc-900/60 border border-zinc-800 rounded-lg p-4">
+                    {chunk.content}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

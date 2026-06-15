@@ -59,6 +59,13 @@ export async function POST(
     return Response.json({ error: 'folio_not_found' }, { status: 404 })
   }
 
+  const folioOwnerEmail = folio.email
+  const folioOwnerName = folio.name
+  const isSiteOwner = folioOwnerEmail === (process.env.OWNER_EMAIL ?? '')
+  // Site owner falls back to CAL_USERNAME env var so their folio works without Studio config.
+  // All other folios get exactly what's in the DB — null means "not configured".
+  const folioCalUsername = folio.cal_username
+    ?? (isSiteOwner ? (process.env.CAL_USERNAME ?? null) : null)
   const session = await auth()
 
   let body: { messages: Anthropic.MessageParam[] }
@@ -109,6 +116,7 @@ export async function POST(
     visitorMemories || undefined,
     baselineResume,
     visitorConnection,
+    { name: folioOwnerName, isSiteOwner, hasCalUsername: !!folioCalUsername },
   )
 
   const encoder = new TextEncoder()
@@ -148,6 +156,9 @@ export async function POST(
             t.name,
             t.input as Record<string, unknown>,
             session,
+            folioOwnerEmail,
+            folioOwnerName,
+            folioCalUsername,
           )
           results.push({ type: 'tool_result', tool_use_id: t.id, content: result })
         }
