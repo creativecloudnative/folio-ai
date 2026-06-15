@@ -10,6 +10,7 @@ export type Folio = {
   is_public: boolean
   token_budget: number
   tokens_used: number
+  cal_username: string | null
   created_at: string
 }
 
@@ -35,8 +36,8 @@ async function ensureTable() {
       created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
     )
   `
-  // Add column to existing tables that predate this field
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS cal_username TEXT`
 }
 
 export function nameToSlug(name: string): string {
@@ -63,7 +64,7 @@ export async function upsertFolioOnLogin(
   await ensureTable()
 
   const existing = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
+    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, cal_username, created_at
     FROM folios WHERE owner_id = ${ownerId} LIMIT 1
   `
   if (existing.length > 0) return existing[0] as Folio
@@ -74,7 +75,7 @@ export async function upsertFolioOnLogin(
   const rows = await sql`
     INSERT INTO folios (owner_id, slug, name, email, is_public)
     VALUES (${ownerId}, ${slug}, ${name}, ${email}, ${isCreator})
-    RETURNING id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
+    RETURNING id, owner_id, slug, name, email, is_public, token_budget, tokens_used, cal_username, created_at
   `
   console.log('[folio-ai new-folio]', JSON.stringify({ slug, name, email }))
 
@@ -87,7 +88,7 @@ export async function upsertFolioOnLogin(
 export async function getFolioBySlug(slug: string): Promise<Folio | null> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
+    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, cal_username, created_at
     FROM folios WHERE slug = ${slug} LIMIT 1
   `
   return (rows[0] as Folio) ?? null
@@ -96,7 +97,7 @@ export async function getFolioBySlug(slug: string): Promise<Folio | null> {
 export async function getFolioByOwnerId(ownerId: string): Promise<Folio | null> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
+    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, cal_username, created_at
     FROM folios WHERE owner_id = ${ownerId} LIMIT 1
   `
   return (rows[0] as Folio) ?? null
@@ -105,7 +106,7 @@ export async function getFolioByOwnerId(ownerId: string): Promise<Folio | null> 
 export async function getAllFolios(): Promise<Folio[]> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, created_at
+    SELECT id, owner_id, slug, name, email, is_public, token_budget, tokens_used, cal_username, created_at
     FROM folios ORDER BY created_at DESC
   `
   return rows as Folio[]
@@ -158,6 +159,10 @@ export async function getAllDocumentsForAdmin(): Promise<AdminDocument[]> {
 
 export async function setFolioVisibility(ownerId: string, isPublic: boolean): Promise<void> {
   await sql`UPDATE folios SET is_public = ${isPublic} WHERE owner_id = ${ownerId}`
+}
+
+export async function setFolioCalUsername(ownerId: string, calUsername: string | null): Promise<void> {
+  await sql`UPDATE folios SET cal_username = ${calUsername} WHERE owner_id = ${ownerId}`
 }
 
 export async function consumeTokens(ownerId: string, amount: number): Promise<void> {

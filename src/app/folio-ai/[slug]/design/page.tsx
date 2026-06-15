@@ -58,7 +58,7 @@ export default async function FolioDesignPage({
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} />
+        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} initialCalUsername={folio.cal_username} />
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { auth } from '@/auth'
+import config from '../../../../folio.config'
 import { buildSystemPrompt } from '@/agent/prompts/system'
 import { tools } from '@/agent/tools/definitions'
 import { executeTool } from '@/agent/tools/handlers'
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
             t.input as Record<string, unknown>,
             session,
             process.env.OWNER_EMAIL ?? '',
+            config.owner.name,
           )
           results.push({ type: 'tool_result', tool_use_id: t.id, content: result })
         }

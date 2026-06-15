@@ -60,6 +60,9 @@ export async function POST(
   }
 
   const folioOwnerEmail = folio.email
+  const folioOwnerName = folio.name
+  const folioCalUsername = folio.cal_username
+  const isSiteOwner = folioOwnerEmail === (process.env.OWNER_EMAIL ?? '')
   const session = await auth()
 
   let body: { messages: Anthropic.MessageParam[] }
@@ -110,6 +113,7 @@ export async function POST(
     visitorMemories || undefined,
     baselineResume,
     visitorConnection,
+    { name: folioOwnerName, isSiteOwner, hasCalUsername: !!folioCalUsername },
   )
 
   const encoder = new TextEncoder()
@@ -150,6 +154,8 @@ export async function POST(
             t.input as Record<string, unknown>,
             session,
             folioOwnerEmail,
+            folioOwnerName,
+            folioCalUsername,
           )
           results.push({ type: 'tool_result', tool_use_id: t.id, content: result })
         }
