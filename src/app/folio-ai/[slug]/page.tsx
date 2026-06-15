@@ -302,7 +302,7 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                 <RefreshFolioButton />
                 <Link
                   href={`/folio-ai/${slug}/design`}
-                  className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400 transition-colors"
+                  className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
                 >
                   Studio
                 </Link>
