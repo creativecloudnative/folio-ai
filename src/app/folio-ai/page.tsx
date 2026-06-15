@@ -66,10 +66,10 @@ export default async function FolioHomePage() {
       {/* Nav */}
       <nav className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <span className="text-sm font-semibold tracking-wide text-white">folio-ai</span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             href={`/folio-ai/${creatorSlug}`}
-            className="text-sm text-zinc-400 hover:text-white transition-colors"
+            className="text-xs text-zinc-400 hover:text-white transition-colors"
           >
             See example
           </Link>
@@ -77,7 +77,7 @@ export default async function FolioHomePage() {
             href="https://github.com/creativecloudnative/folio-ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-zinc-400 hover:text-white transition-colors"
+            className="text-xs text-zinc-400 hover:text-white transition-colors"
           >
             GitHub
           </a>
@@ -86,24 +86,24 @@ export default async function FolioHomePage() {
               {isAdmin ? (
                 <Link
                   href="/folio-ai/admin"
-                  className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+                  className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
                 >
                   Admin
                 </Link>
               ) : folioSlug ? (
                 <Link
                   href={`/folio-ai/${folioSlug}`}
-                  className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                  className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
                 >
                   My folio
                 </Link>
               ) : null}
-              <SignOutButton className="text-sm text-zinc-400 hover:text-white transition-colors">
+              <SignOutButton className="text-xs text-zinc-400 hover:text-white transition-colors">
                 Sign out
               </SignOutButton>
             </>
           ) : (
-            <SignInButton className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
+            <SignInButton className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
               Sign in
             </SignInButton>
           )}
