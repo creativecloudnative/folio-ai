@@ -59,6 +59,7 @@ export async function POST(
     return Response.json({ error: 'folio_not_found' }, { status: 404 })
   }
 
+  const folioOwnerEmail = folio.email
   const session = await auth()
 
   let body: { messages: Anthropic.MessageParam[] }
@@ -148,6 +149,7 @@ export async function POST(
             t.name,
             t.input as Record<string, unknown>,
             session,
+            folioOwnerEmail,
           )
           results.push({ type: 'tool_result', tool_use_id: t.id, content: result })
         }

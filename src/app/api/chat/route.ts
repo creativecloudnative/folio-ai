@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
             t.name,
             t.input as Record<string, unknown>,
             session,
+            process.env.OWNER_EMAIL ?? '',
           )
           results.push({ type: 'tool_result', tool_use_id: t.id, content: result })
         }

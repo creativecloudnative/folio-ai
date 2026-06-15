@@ -13,6 +13,7 @@ export async function executeTool(
   name: string,
   input: Record<string, unknown>,
   session: AuthSession,
+  folioOwnerEmail: string,
 ): Promise<string> {
   switch (name) {
     case 'send_note': {
@@ -26,7 +27,7 @@ export async function executeTool(
       }
 
       try {
-        await sendNoteToOwner({ visitorName, visitorEmail, subject, message })
+        await sendNoteToOwner({ visitorName, visitorEmail, subject, message, ownerEmail: folioOwnerEmail })
         console.log('[folio-ai note-sent]', JSON.stringify({
           timestamp: new Date().toISOString(),
           from: visitorEmail,
