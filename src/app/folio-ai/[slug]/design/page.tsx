@@ -43,7 +43,7 @@ export default async function FolioDesignPage({
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <span>{session.user.name}</span>
           <span>·</span>
-          <a href={`/folio-ai/${slug}`} className="hover:text-zinc-300 transition-colors">
+          <a href={`/folio-ai/${slug}`} className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
             View folio
           </a>
           <span>·</span>
