@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { nameToSlug } from '@/lib/folios'
 import config from '../../../folio.config'
+import { isAdminEmail } from '@/lib/admin'
 import SignInButton from '@/components/SignInButton'
 import SignOutButton from '@/components/SignOutButton'
 
@@ -57,6 +58,7 @@ const FEATURES = [
 export default async function FolioHomePage() {
   const session = await auth()
   const folioSlug = session?.user?.folioSlug
+  const isAdmin = isAdminEmail(session?.user?.email)
   const creatorSlug = nameToSlug(config.owner.name)
 
   return (
@@ -81,14 +83,21 @@ export default async function FolioHomePage() {
           </a>
           {session?.user ? (
             <>
-              {folioSlug && (
+              {isAdmin ? (
+                <Link
+                  href="/folio-ai/admin"
+                  className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+                >
+                  Admin
+                </Link>
+              ) : folioSlug ? (
                 <Link
                   href={`/folio-ai/${folioSlug}`}
                   className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
                 >
                   My folio
                 </Link>
-              )}
+              ) : null}
               <SignOutButton className="text-sm text-zinc-400 hover:text-white transition-colors">
                 Sign out
               </SignOutButton>
@@ -126,7 +135,14 @@ export default async function FolioHomePage() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {folioSlug ? (
+            {isAdmin ? (
+              <Link
+                href="/folio-ai/admin"
+                className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+              >
+                Go to admin →
+              </Link>
+            ) : folioSlug ? (
               <Link
                 href={`/folio-ai/${folioSlug}`}
                 className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
