@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, lazy } from 'react'
+import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
@@ -12,17 +13,35 @@ type Props = {
   title: string
 }
 
+function nodeToText(node: ReactNode): string {
+  if (typeof node === 'string') return node
+  if (typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(nodeToText).join('')
+  if (node && typeof node === 'object' && 'props' in node) {
+    return nodeToText((node as { props: { children?: ReactNode } }).props.children)
+  }
+  return ''
+}
+
+function headingId(children: ReactNode): string {
+  return nodeToText(children)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
 const components: Components = {
   h1: ({ children }) => (
-    <h1 className="text-3xl font-bold text-white mt-10 mb-4 leading-tight">{children}</h1>
+    <h1 id={headingId(children)} className="text-3xl font-bold text-white mt-10 mb-4 leading-tight">{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-xl font-semibold text-white mt-10 mb-3 pb-2 border-b border-zinc-700">
+    <h2 id={headingId(children)} className="text-xl font-semibold text-white mt-10 mb-3 pb-2 border-b border-zinc-700">
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-base font-semibold text-zinc-200 mt-6 mb-2">{children}</h3>
+    <h3 id={headingId(children)} className="text-base font-semibold text-zinc-200 mt-6 mb-2">{children}</h3>
   ),
   p: ({ children }) => (
     <p className="text-zinc-300 leading-relaxed mb-4">{children}</p>
