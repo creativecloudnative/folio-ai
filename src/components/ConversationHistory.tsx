@@ -11,10 +11,11 @@ export type StoredConversation = {
 }
 
 type Props = {
-  onRestore: (conversation: StoredConversation) => void
+  onRestore?: (conversation: StoredConversation) => void
 }
 
 export default function ConversationHistory({ onRestore }: Props) {
+  const isViewer = !onRestore
   const [conversations, setConversations] = useState<StoredConversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +42,7 @@ export default function ConversationHistory({ onRestore }: Props) {
   useEffect(() => { fetchConversations() }, [fetchConversations])
 
   async function handleRestore(conv: StoredConversation) {
+    if (!onRestore) return
     setRestoring(conv.id)
     try {
       const res = await fetch(`/api/studio/conversations/${conv.id}`)
@@ -136,28 +138,30 @@ export default function ConversationHistory({ onRestore }: Props) {
                 <p className="text-xs text-zinc-500 mt-0.5">{updatedDate} · {updatedTime}</p>
               </div>
 
-              <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleRestore(conv) }}
-                  disabled={isRestoring || isDeleting}
-                  className="text-xs px-3 py-1 rounded border border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isRestoring ? 'Loading…' : 'Restore'}
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(conv.id) }}
-                  disabled={isDeleting || isRestoring}
-                  className={`text-xs px-3 py-1 rounded border transition-colors ${
-                    isDeleting
-                      ? 'text-zinc-600 border-zinc-700 cursor-not-allowed'
-                      : isConfirming
-                        ? 'bg-red-600 hover:bg-red-500 text-white border-red-600'
-                        : 'border-zinc-600 text-zinc-500 hover:border-red-800 hover:text-red-400'
-                  }`}
-                >
-                  {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm' : 'Delete'}
-                </button>
-              </div>
+              {!isViewer && (
+                <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRestore(conv) }}
+                    disabled={isRestoring || isDeleting}
+                    className="text-xs px-3 py-1 rounded border border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isRestoring ? 'Loading…' : 'Restore'}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(conv.id) }}
+                    disabled={isDeleting || isRestoring}
+                    className={`text-xs px-3 py-1 rounded border transition-colors ${
+                      isDeleting
+                        ? 'text-zinc-600 border-zinc-700 cursor-not-allowed'
+                        : isConfirming
+                          ? 'bg-red-600 hover:bg-red-500 text-white border-red-600'
+                          : 'border-zinc-600 text-zinc-500 hover:border-red-800 hover:text-red-400'
+                    }`}
+                  >
+                    {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm' : 'Delete'}
+                  </button>
+                </div>
+              )}
             </li>
           )
         })}

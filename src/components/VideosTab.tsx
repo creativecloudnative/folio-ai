@@ -6,9 +6,10 @@ import type { FolioVideo } from '@/lib/videos'
 type Props = {
   folioSlug: string
   initialVideos: FolioVideo[]
+  isViewer?: boolean
 }
 
-export default function VideosTab({ folioSlug, initialVideos }: Props) {
+export default function VideosTab({ folioSlug, initialVideos, isViewer = false }: Props) {
   const [videos, setVideos] = useState<FolioVideo[]>(initialVideos)
   const [url, setUrl] = useState('')
   const [addLoading, setAddLoading] = useState(false)
@@ -72,30 +73,32 @@ export default function VideosTab({ folioSlug, initialVideos }: Props) {
     <div className="p-6 max-w-2xl space-y-5">
 
       {/* Add video */}
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
-        <h2 className="text-sm font-semibold text-white mb-1">Add a video</h2>
-        <p className="text-sm text-zinc-400 leading-relaxed mb-5">
-          Paste a YouTube URL and we'll pull the title and thumbnail automatically.
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="url"
-            value={url}
-            onChange={e => { setUrl(e.target.value); setAddError(null) }}
-            onKeyDown={e => e.key === 'Enter' && !addLoading && addVideo()}
-            placeholder="https://www.youtube.com/watch?v=…"
-            className="flex-1 text-sm bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
-          />
-          <button
-            onClick={addVideo}
-            disabled={addLoading || !url.trim()}
-            className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40 transition-colors shrink-0"
-          >
-            {addLoading ? 'Adding…' : 'Add'}
-          </button>
-        </div>
-        {addError && <p className="text-xs text-red-400 mt-2">{addError}</p>}
-      </section>
+      {!isViewer && (
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+          <h2 className="text-sm font-semibold text-white mb-1">Add a video</h2>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-5">
+            Paste a YouTube URL and we'll pull the title and thumbnail automatically.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setAddError(null) }}
+              onKeyDown={e => e.key === 'Enter' && !addLoading && addVideo()}
+              placeholder="https://www.youtube.com/watch?v=…"
+              className="flex-1 text-sm bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+            <button
+              onClick={addVideo}
+              disabled={addLoading || !url.trim()}
+              className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40 transition-colors shrink-0"
+            >
+              {addLoading ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+          {addError && <p className="text-xs text-red-400 mt-2">{addError}</p>}
+        </section>
+      )}
 
       {/* Video list */}
       {videos.length > 0 && (
@@ -122,7 +125,7 @@ export default function VideosTab({ folioSlug, initialVideos }: Props) {
                 <p className="text-sm font-medium text-white leading-snug truncate">{video.title}</p>
                 <p className="text-xs font-mono text-zinc-600 mt-0.5">{video.video_id}</p>
 
-                {editingId === video.id ? (
+                {!isViewer && editingId === video.id ? (
                   <div className="mt-2 space-y-2">
                     <textarea
                       value={editDesc}
@@ -152,29 +155,33 @@ export default function VideosTab({ folioSlug, initialVideos }: Props) {
                     <p className="text-xs text-zinc-500 truncate flex-1">
                       {video.description ?? <span className="italic text-zinc-600">No description</span>}
                     </p>
-                    <button
-                      onClick={() => { setEditingId(video.id); setEditDesc(video.description ?? '') }}
-                      className="text-xs text-zinc-600 hover:text-indigo-400 transition-colors shrink-0"
-                    >
-                      Edit
-                    </button>
+                    {!isViewer && (
+                      <button
+                        onClick={() => { setEditingId(video.id); setEditDesc(video.description ?? '') }}
+                        className="text-xs text-zinc-600 hover:text-indigo-400 transition-colors shrink-0"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Remove */}
-              <button
-                onClick={() => removeVideo(video.id)}
-                disabled={removingId === video.id}
-                className="shrink-0 text-zinc-600 hover:text-red-400 disabled:opacity-40 transition-colors self-start mt-0.5"
-                aria-label="Remove video"
-              >
-                {removingId === video.id ? '…' : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
-              </button>
+              {!isViewer && (
+                <button
+                  onClick={() => removeVideo(video.id)}
+                  disabled={removingId === video.id}
+                  className="shrink-0 text-zinc-600 hover:text-red-400 disabled:opacity-40 transition-colors self-start mt-0.5"
+                  aria-label="Remove video"
+                >
+                  {removingId === video.id ? '…' : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
           ))}
         </section>

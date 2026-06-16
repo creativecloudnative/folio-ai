@@ -6,11 +6,22 @@ type Props = {
   folioSlug: string
   initialIsPublic: boolean
   initialInvites: string[]
+  initialStudioIsPublic: boolean
+  initialStudioInvites: string[]
 }
 
-export default function SharingTab({ folioSlug, initialIsPublic, initialInvites }: Props) {
+export default function SharingTab({ folioSlug, initialIsPublic, initialInvites, initialStudioIsPublic, initialStudioInvites }: Props) {
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [invites, setInvites] = useState<string[]>(initialInvites)
+  const [studioIsPublic, setStudioIsPublic] = useState(initialStudioIsPublic)
+  const [studioInvites, setStudioInvites] = useState<string[]>(initialStudioInvites)
+  const [studioVisibilityLoading, setStudioVisibilityLoading] = useState(false)
+  const [studioVisibilityError, setStudioVisibilityError] = useState<string | null>(null)
+  const [studioInviteInput, setStudioInviteInput] = useState('')
+  const [studioInviteLoading, setStudioInviteLoading] = useState(false)
+  const [studioInviteError, setStudioInviteError] = useState<string | null>(null)
+  const [removingStudioEmail, setRemovingStudioEmail] = useState<string | null>(null)
+  const studioInputRef = useRef<HTMLInputElement>(null)
   const [visibilityLoading, setVisibilityLoading] = useState(false)
   const [visibilityError, setVisibilityError] = useState<string | null>(null)
   const [inviteInput, setInviteInput] = useState('')
@@ -80,6 +91,63 @@ export default function SharingTab({ folioSlug, initialIsPublic, initialInvites 
       // silently fail — the email stays in the list
     } finally {
       setRemovingEmail(null)
+    }
+  }
+
+  async function setStudioVisibility(next: boolean) {
+    setStudioVisibilityLoading(true)
+    setStudioVisibilityError(null)
+    try {
+      const res = await fetch(`/api/folio-ai/${folioSlug}/studio-visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: next }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      setStudioIsPublic(next)
+    } catch {
+      setStudioVisibilityError('Something went wrong. Try again.')
+    } finally {
+      setStudioVisibilityLoading(false)
+    }
+  }
+
+  async function addStudioInvite() {
+    const email = studioInviteInput.trim().toLowerCase()
+    if (!email || !email.includes('@')) { setStudioInviteError('Enter a valid email address.'); return }
+    if (studioInvites.includes(email)) { setStudioInviteError('That email is already on the list.'); return }
+    setStudioInviteLoading(true)
+    setStudioInviteError(null)
+    try {
+      const res = await fetch(`/api/folio-ai/${folioSlug}/studio-invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!res.ok) throw new Error('Failed to add')
+      setStudioInvites(prev => [...prev, email])
+      setStudioInviteInput('')
+      studioInputRef.current?.focus()
+    } catch {
+      setStudioInviteError('Something went wrong. Try again.')
+    } finally {
+      setStudioInviteLoading(false)
+    }
+  }
+
+  async function removeStudioInvite(email: string) {
+    setRemovingStudioEmail(email)
+    try {
+      await fetch(`/api/folio-ai/${folioSlug}/studio-invites`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setStudioInvites(prev => prev.filter(e => e !== email))
+    } catch {
+      // silently fail
+    } finally {
+      setRemovingStudioEmail(null)
     }
   }
 
@@ -185,6 +253,101 @@ export default function SharingTab({ folioSlug, initialIsPublic, initialInvites 
 
           {invites.length === 0 && (
             <p className="mt-4 text-xs text-zinc-600">No visitors invited yet.</p>
+          )}
+        </section>
+      )}
+
+      {/* Studio access */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-1">Studio access</h2>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              {studioIsPublic
+                ? 'Your studio is open — anyone with the link can view it in read-only mode.'
+                : 'Your studio is private — only you can access it. Enable to share your work-in-progress with others.'}
+            </p>
+          </div>
+          <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium ${
+            studioIsPublic
+              ? 'border-emerald-700/60 bg-emerald-900/20 text-emerald-400'
+              : 'border-zinc-600 bg-zinc-800 text-zinc-400'
+          }`}>
+            {studioIsPublic ? 'Open' : 'Private'}
+          </span>
+        </div>
+
+        <div className="mt-5 flex items-center gap-3">
+          {studioIsPublic ? (
+            <button
+              onClick={() => setStudioVisibility(false)}
+              disabled={studioVisibilityLoading}
+              className="text-sm px-4 py-2 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white disabled:opacity-40 transition-colors"
+            >
+              {studioVisibilityLoading ? 'Saving…' : 'Make private'}
+            </button>
+          ) : (
+            <button
+              onClick={() => setStudioVisibility(true)}
+              disabled={studioVisibilityLoading}
+              className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition-colors"
+            >
+              {studioVisibilityLoading ? 'Saving…' : 'Open studio'}
+            </button>
+          )}
+          {studioVisibilityError && <p className="text-xs text-red-400">{studioVisibilityError}</p>}
+        </div>
+      </section>
+
+      {/* Studio invite list — only shown when private */}
+      {!studioIsPublic && (
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+          <h2 className="text-sm font-semibold text-white mb-1">Studio viewers</h2>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-5">
+            Invite specific people to view your studio in read-only mode. They must be signed in.
+          </p>
+          <div className="flex gap-2">
+            <input
+              ref={studioInputRef}
+              type="email"
+              value={studioInviteInput}
+              onChange={e => { setStudioInviteInput(e.target.value); setStudioInviteError(null) }}
+              onKeyDown={e => e.key === 'Enter' && addStudioInvite()}
+              placeholder="colleague@company.com"
+              className="flex-1 text-sm bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+            <button
+              onClick={addStudioInvite}
+              disabled={studioInviteLoading || !studioInviteInput.trim()}
+              className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition-colors shrink-0"
+            >
+              {studioInviteLoading ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+          {studioInviteError && <p className="text-xs text-red-400 mt-2">{studioInviteError}</p>}
+          {studioInvites.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {studioInvites.map(email => (
+                <li key={email} className="flex items-center justify-between gap-3 text-sm text-zinc-300 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2.5">
+                  <span className="truncate">{email}</span>
+                  <button
+                    onClick={() => removeStudioInvite(email)}
+                    disabled={removingStudioEmail === email}
+                    className="text-zinc-600 hover:text-red-400 disabled:opacity-40 transition-colors shrink-0"
+                    aria-label={`Remove ${email}`}
+                  >
+                    {removingStudioEmail === email ? '…' : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {studioInvites.length === 0 && (
+            <p className="mt-4 text-xs text-zinc-600">No studio viewers invited yet.</p>
           )}
         </section>
       )}

@@ -22,10 +22,13 @@ type RestoredConversation = {
 type TokenBalance = { budget: number; used: number; remaining: number }
 
 type Props = {
+  isViewer?: boolean
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
+  initialStudioIsPublic?: boolean
   initialInvites?: string[]
+  initialStudioInvites?: string[]
   initialCalUsername?: string | null
   initialVideos?: FolioVideo[]
 }
@@ -68,13 +71,16 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
   },
 }
 
-const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
+const VIEWER_TABS: Tab[] = ['history', 'documents', 'compositions', 'videos']
+const VALID_TABS: Tab[]  = OWNER_TABS
 
-export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites, initialCalUsername, initialVideos }: Props) {
+export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
-  const initialTab   = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'chat'
+  const visibleTabs  = isViewer ? VIEWER_TABS : OWNER_TABS
+  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer ? 'history' : 'chat')
 
   const [active, setActive] = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
@@ -136,7 +142,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
     <div className="flex flex-col h-full">
       {/* Tab bar */}
       <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0 scrollbar-none"  style={{ scrollbarWidth: 'none' }}>
-        {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos'] as Tab[]).map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
@@ -185,18 +191,24 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
           />
         )}
         {active === 'history' && (
-          <ConversationHistory onRestore={handleRestore} />
+          <ConversationHistory onRestore={isViewer ? undefined : handleRestore} />
         )}
-        {active === 'documents' && <DocumentsTable folioSlug={folioSlug} />}
-        {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} />}
+        {active === 'documents' && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer} />}
+        {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer} />}
         {active === 'sharing' && folioSlug && (
-          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} initialInvites={initialInvites ?? []} />
+          <SharingTab
+            folioSlug={folioSlug}
+            initialIsPublic={initialIsPublic ?? false}
+            initialInvites={initialInvites ?? []}
+            initialStudioIsPublic={initialStudioIsPublic ?? false}
+            initialStudioInvites={initialStudioInvites ?? []}
+          />
         )}
         {active === 'integrations' && folioSlug && (
           <IntegrationsTab folioSlug={folioSlug} initialCalUsername={initialCalUsername ?? null} />
         )}
         {active === 'videos' && folioSlug && (
-          <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} />
+          <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
         )}
       </div>
     </div>

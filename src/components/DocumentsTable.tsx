@@ -49,7 +49,7 @@ type UploadState = 'idle' | 'uploading' | 'success' | 'error'
 
 type SortField = 'type' | 'title' | 'created_at' | 'chunk_count'
 
-export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
+export default function DocumentsTable({ folioSlug, isViewer = false }: { folioSlug?: string; isViewer?: boolean }) {
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -350,22 +350,24 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
           >
             {exporting ? 'Exporting…' : '↓ Export all'}
           </button>
-          <button
-            onClick={() => { setShowUpload((v) => !v); setUploadState('idle'); setUploadMsg('') }}
-            className={`text-xs px-3 py-1.5 rounded border transition-colors ${
-              showUpload
-                ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40'
-                : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'
-            }`}
-          >
-            {showUpload ? 'Cancel' : '+ Upload'}
-          </button>
+          {!isViewer && (
+            <button
+              onClick={() => { setShowUpload((v) => !v); setUploadState('idle'); setUploadMsg('') }}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                showUpload
+                  ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40'
+                  : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'
+              }`}
+            >
+              {showUpload ? 'Cancel' : '+ Upload'}
+            </button>
+          )}
         </div>
       </div>
 
 
       {/* Inline upload form */}
-      {uploadForm}
+      {!isViewer && uploadForm}
 
       {/* Table or empty state */}
       {docs.length === 0 ? (
@@ -511,7 +513,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                             View
                           </a>
                         )}
-                        {isPublishable && (
+                        {!isViewer && isPublishable && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handlePublish(doc.source, !doc.is_published) }}
                             disabled={isPublishing}
@@ -534,19 +536,21 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                         >
                           ↓
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(doc.source) }}
-                          disabled={isDeleting}
-                          className={`text-xs px-3 py-1 rounded transition-colors ${
-                            isDeleting
-                              ? 'text-zinc-600 cursor-not-allowed'
-                              : isConfirming
-                                ? 'bg-red-600 hover:bg-red-500 text-white'
-                                : 'text-zinc-500 hover:text-red-400 border border-transparent hover:border-red-800'
-                          }`}
-                        >
-                          {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm delete' : 'Delete'}
-                        </button>
+                        {!isViewer && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(doc.source) }}
+                            disabled={isDeleting}
+                            className={`text-xs px-3 py-1 rounded transition-colors ${
+                              isDeleting
+                                ? 'text-zinc-600 cursor-not-allowed'
+                                : isConfirming
+                                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                                  : 'text-zinc-500 hover:text-red-400 border border-transparent hover:border-red-800'
+                            }`}
+                          >
+                            {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm delete' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

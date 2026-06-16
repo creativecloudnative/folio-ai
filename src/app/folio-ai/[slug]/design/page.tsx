@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getTokenBalance } from '@/lib/folios'
 import { getFolioInvites } from '@/lib/invites'
+import { getStudioInvites, isStudioInvited } from '@/lib/studio-invites'
 import { getFolioVideos } from '@/lib/videos'
 import StudioTabs from '@/components/StudioTabs'
 import SignOutButton from '@/components/SignOutButton'
@@ -22,11 +23,20 @@ export default async function FolioDesignPage({
 
   if (!session?.user) redirect(`/folio-ai/${slug}`)
   if (!folio) notFound()
-  if (folio.owner_id !== session.user.id) redirect(`/folio-ai/${slug}`)
 
-  const [balance, invites, videos] = await Promise.all([
+  const isOwner = folio.owner_id === session.user.id
+
+  if (!isOwner) {
+    // Check studio access — public studio or explicitly invited
+    const hasAccess = folio.studio_is_public ||
+      (!!session.user.email && await isStudioInvited(folio.id, session.user.email))
+    if (!hasAccess) redirect(`/folio-ai/${slug}`)
+  }
+
+  const [balance, invites, studioInvites, videos] = await Promise.all([
     getTokenBalance(folio.owner_id),
-    getFolioInvites(folio.id),
+    isOwner ? getFolioInvites(folio.id) : Promise.resolve([]),
+    isOwner ? getStudioInvites(folio.id) : Promise.resolve([]),
     getFolioVideos(folio.id),
   ])
 
@@ -41,6 +51,11 @@ export default async function FolioDesignPage({
           <span className="text-xs text-zinc-500 border border-zinc-700 rounded px-2 py-0.5">
             {folio.name}
           </span>
+          {!isOwner && (
+            <span className="text-xs text-amber-400 border border-amber-700/50 bg-amber-900/20 rounded px-2 py-0.5">
+              read-only
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <span>{session.user.name}</span>
@@ -60,7 +75,17 @@ export default async function FolioDesignPage({
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} initialCalUsername={folio.cal_username} initialVideos={videos} />
+        <StudioTabs
+          isViewer={!isOwner}
+          initialBalance={balance}
+          folioSlug={slug}
+          initialIsPublic={folio.is_public}
+          initialStudioIsPublic={folio.studio_is_public}
+          initialInvites={invites}
+          initialStudioInvites={studioInvites}
+          initialCalUsername={folio.cal_username}
+          initialVideos={videos}
+        />
       </div>
     </div>
   )
