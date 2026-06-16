@@ -190,7 +190,10 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
           />
         )}
         {active === 'history' && (
-          <ConversationHistory onRestore={isViewer ? undefined : handleRestore} />
+          <ConversationHistory
+            onRestore={isViewer ? undefined : handleRestore}
+            folioSlug={isViewer ? folioSlug : undefined}
+          />
         )}
         {active === 'documents' && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer} />}
         {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer} />}

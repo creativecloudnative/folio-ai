@@ -50,6 +50,7 @@ type UploadState = 'idle' | 'uploading' | 'success' | 'error'
 type SortField = 'type' | 'title' | 'created_at' | 'chunk_count'
 
 export default function DocumentsTable({ folioSlug, isViewer = false }: { folioSlug?: string; isViewer?: boolean }) {
+  const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,7 +75,7 @@ export default function DocumentsTable({ folioSlug, isViewer = false }: { folioS
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/studio/documents')
+      const res = await fetch(`${apiBase}/documents`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setDocs(data.documents)
@@ -83,7 +84,7 @@ export default function DocumentsTable({ folioSlug, isViewer = false }: { folioS
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [apiBase])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchDocs() }, [fetchDocs])
@@ -342,14 +343,16 @@ export default function DocumentsTable({ folioSlug, isViewer = false }: { folioS
           className="flex-1 min-w-[160px] max-w-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <div className="flex gap-2 ml-auto">
-          <button
-            onClick={handleExportAll}
-            disabled={exporting || docs.length === 0}
-            className="text-xs px-3 py-1.5 rounded border border-zinc-600 text-zinc-400 hover:border-emerald-600 hover:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Download all content as a ZIP of Markdown files"
-          >
-            {exporting ? 'Exporting…' : '↓ Export all'}
-          </button>
+          {!isViewer && (
+            <button
+              onClick={handleExportAll}
+              disabled={exporting || docs.length === 0}
+              className="text-xs px-3 py-1.5 rounded border border-zinc-600 text-zinc-400 hover:border-emerald-600 hover:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Download all content as a ZIP of Markdown files"
+            >
+              {exporting ? 'Exporting…' : '↓ Export all'}
+            </button>
+          )}
           {!isViewer && (
             <button
               onClick={() => { setShowUpload((v) => !v); setUploadState('idle'); setUploadMsg('') }}

@@ -12,10 +12,12 @@ export type StoredConversation = {
 
 type Props = {
   onRestore?: (conversation: StoredConversation) => void
+  folioSlug?: string
 }
 
-export default function ConversationHistory({ onRestore }: Props) {
+export default function ConversationHistory({ onRestore, folioSlug }: Props) {
   const isViewer = !onRestore
+  const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [conversations, setConversations] = useState<StoredConversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +29,7 @@ export default function ConversationHistory({ onRestore }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/studio/conversations')
+      const res = await fetch(`${apiBase}/conversations`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setConversations(data.conversations)
@@ -36,7 +38,7 @@ export default function ConversationHistory({ onRestore }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [apiBase])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchConversations() }, [fetchConversations])
@@ -45,7 +47,7 @@ export default function ConversationHistory({ onRestore }: Props) {
     if (!onRestore) return
     setRestoring(conv.id)
     try {
-      const res = await fetch(`/api/studio/conversations/${conv.id}`)
+      const res = await fetch(`${apiBase}/conversations/${conv.id}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       onRestore(data.conversation)

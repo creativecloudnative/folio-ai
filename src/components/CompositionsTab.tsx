@@ -129,6 +129,7 @@ function TypesPanel({ onClose, onTypeCreated }: {
 
 // ─── Main tab ─────────────────────────────────────────────────────────────────
 export default function CompositionsTab({ folioSlug, isViewer = false }: { folioSlug?: string; isViewer?: boolean }) {
+  const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [compositions, setCompositions]       = useState<Composition[]>([])
   const [compositionTypes, setCompositionTypes] = useState<CompositionType[]>([])
   const [loading, setLoading]                 = useState(true)
@@ -160,9 +161,9 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
     setError(null)
     try {
       const [cRes, tRes, dRes] = await Promise.all([
-        fetch('/api/studio/compositions'),
-        fetch('/api/studio/composition-types'),
-        fetch('/api/studio/documents'),
+        fetch(`${apiBase}/compositions`),
+        fetch(`${apiBase}/composition-types`),
+        fetch(`${apiBase}/documents`),
       ])
       if (!cRes.ok) throw new Error(`HTTP ${cRes.status}`)
       const [cData, tData, dData] = await Promise.all([cRes.json(), tRes.json(), dRes.json()])
@@ -174,7 +175,7 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [apiBase])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchAll() }, [fetchAll])
@@ -190,7 +191,7 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
     setNewSectionName('')
     setItemsLoading(true)
     try {
-      const res = await fetch(`/api/studio/compositions/${comp.id}/items`)
+      const res = await fetch(`${apiBase}/compositions/${comp.id}/items`)
       if (res.ok) { const d = await res.json(); setItems(d.items) }
     } finally { setItemsLoading(false) }
   }
