@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getTokenBalance } from '@/lib/folios'
 import { getFolioInvites } from '@/lib/invites'
+import { getFolioVideos } from '@/lib/videos'
 import StudioTabs from '@/components/StudioTabs'
 import SignOutButton from '@/components/SignOutButton'
 
@@ -23,9 +24,10 @@ export default async function FolioDesignPage({
   if (!folio) notFound()
   if (folio.owner_id !== session.user.id) redirect(`/folio-ai/${slug}`)
 
-  const [balance, invites] = await Promise.all([
+  const [balance, invites, videos] = await Promise.all([
     getTokenBalance(folio.owner_id),
     getFolioInvites(folio.id),
+    getFolioVideos(folio.id),
   ])
 
   return (
@@ -58,7 +60,7 @@ export default async function FolioDesignPage({
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} initialCalUsername={folio.cal_username} />
+        <StudioTabs initialBalance={balance} folioSlug={slug} initialIsPublic={folio.is_public} initialInvites={invites} initialCalUsername={folio.cal_username} initialVideos={videos} />
       </div>
     </div>
   )

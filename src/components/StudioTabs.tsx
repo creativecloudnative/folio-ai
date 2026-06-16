@@ -8,8 +8,10 @@ import ConversationHistory, { type StoredConversation } from './ConversationHist
 import CompositionsTab from './CompositionsTab'
 import SharingTab from './SharingTab'
 import IntegrationsTab from './IntegrationsTab'
+import VideosTab from './VideosTab'
+import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos'
 
 type RestoredConversation = {
   id: string
@@ -25,6 +27,7 @@ type Props = {
   initialIsPublic?: boolean
   initialInvites?: string[]
   initialCalUsername?: string | null
+  initialVideos?: FolioVideo[]
 }
 
 const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = {
@@ -58,11 +61,16 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Connect external services so your AI assistant can take real-world actions.',
     detail: 'Connect Cal.com to enable meeting scheduling directly from the chat. When a Cal.com username is set, your assistant can generate pre-filled booking links for visitors. Without it, the scheduling capability is hidden from the assistant entirely.',
   },
+  videos: {
+    label: 'Videos',
+    short: 'Add YouTube videos to your folio — talks, demos, and walkthroughs.',
+    detail: 'Paste any YouTube URL to pull in the title and thumbnail automatically. Added videos appear in a Talks & Videos section on your public folio page. Add a short description to give visitors context before they click.',
+  },
 }
 
-const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations']
+const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
 
-export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites, initialCalUsername }: Props) {
+export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites, initialCalUsername, initialVideos }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
@@ -128,7 +136,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
     <div className="flex flex-col h-full">
       {/* Tab bar */}
       <div className="flex border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0">
-        {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations'] as Tab[]).map((tab) => (
+        {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
@@ -186,6 +194,9 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
         )}
         {active === 'integrations' && folioSlug && (
           <IntegrationsTab folioSlug={folioSlug} initialCalUsername={initialCalUsername ?? null} />
+        )}
+        {active === 'videos' && folioSlug && (
+          <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} />
         )}
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
   type Composition,
 } from '@/lib/compositions'
 import { sql } from '@/lib/db'
+import { getFolioVideos } from '@/lib/videos'
 import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
@@ -271,9 +272,10 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   if (!folio.is_public && !isOwner && !isInvited) notFound()
 
-  const [sections, bioExcerpt] = await Promise.all([
+  const [sections, bioExcerpt, videos] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
+    getFolioVideos(folio.id),
   ])
 
   const hasContent = sections.length > 0
@@ -296,6 +298,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                 {section.label}
               </a>
             ))}
+            {videos.length > 0 && (
+              <a href="#videos" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:block">Videos</a>
+            )}
             <a href="#contact" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:block">Contact</a>
             {isOwner && (
               <>
@@ -410,6 +415,51 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
           <div className="mx-auto max-w-5xl px-6">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-12 text-center">
               <p className="text-zinc-500">No published content yet — check back soon.</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Talks & Videos */}
+      {videos.length > 0 && (
+        <section id="videos" className="border-t border-zinc-800/60 py-20">
+          <div className="mx-auto max-w-5xl px-6">
+            <p className="text-sm font-mono text-indigo-400 mb-3 tracking-widest uppercase">Talks &amp; Videos</p>
+            <h2 className="text-3xl font-bold text-white mb-12">Talks &amp; Videos</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videos.map(video => (
+                <a
+                  key={video.id}
+                  href={`https://www.youtube.com/watch?v=${video.video_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group rounded-xl border border-zinc-800 bg-zinc-900/40 hover:border-indigo-700 overflow-hidden transition-colors flex flex-col"
+                >
+                  <div className="relative aspect-video overflow-hidden bg-zinc-900">
+                    <img
+                      src={video.thumbnail_url}
+                      alt={video.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {/* Play button overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-indigo-600/80 transition-colors">
+                        <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 flex flex-col gap-1 flex-1">
+                    <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-indigo-300 transition-colors">
+                      {video.title}
+                    </h3>
+                    {video.description && (
+                      <p className="text-xs text-zinc-500 leading-relaxed">{video.description}</p>
+                    )}
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
         </section>
