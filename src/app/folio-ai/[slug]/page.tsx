@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getFolioByOwnerId } from '@/lib/folios'
 import { isFolioInvited } from '@/lib/invites'
+import { isStudioInvited } from '@/lib/studio-invites'
 import {
   getPublishedCompositionsForFolio,
   getFolioComposition,
@@ -272,12 +273,19 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   if (!folio.is_public && !isOwner && !isInvited) notFound()
 
-  const [sections, bioExcerpt, videos, viewerFolio] = await Promise.all([
+  const studioInviteCheck = (!isOwner && !folio.studio_is_public && session?.user?.email)
+    ? isStudioInvited(folio.id, session.user.email)
+    : Promise.resolve(false)
+
+  const [sections, bioExcerpt, videos, viewerFolio, isStudioInvitedUser] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
     getFolioVideos(folio.id),
     (!isOwner && session?.user?.id) ? getFolioByOwnerId(session.user.id) : Promise.resolve(null),
+    studioInviteCheck,
   ])
+
+  const hasStudioAccess = !isOwner && (folio.studio_is_public || isStudioInvitedUser)
 
   const hasContent = sections.length > 0
 
@@ -319,6 +327,14 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                   Settings
                 </Link>
               </>
+            )}
+            {hasStudioAccess && (
+              <Link
+                href={`/folio-ai/${slug}/design`}
+                className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                View studio
+              </Link>
             )}
             {!isOwner && viewerFolio && (
               <Link
