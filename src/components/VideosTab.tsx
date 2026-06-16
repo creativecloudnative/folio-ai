@@ -77,7 +77,7 @@ export default function VideosTab({ folioSlug, initialVideos, isViewer = false }
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
           <h2 className="text-sm font-semibold text-white mb-1">Add a video</h2>
           <p className="text-sm text-zinc-400 leading-relaxed mb-5">
-            Paste a YouTube URL and we'll pull the title and thumbnail automatically.
+            Paste a YouTube URL and we&apos;ll pull the title and thumbnail automatically.
           </p>
           <div className="flex gap-2">
             <input

@@ -73,7 +73,6 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
 
 const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
 const VIEWER_TABS: Tab[] = ['history', 'documents', 'compositions', 'videos']
-const VALID_TABS: Tab[]  = OWNER_TABS
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
   const router       = useRouter()
