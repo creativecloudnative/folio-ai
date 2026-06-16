@@ -428,7 +428,7 @@ export default function DocumentsTable({ folioSlug, isViewer = false }: { folioS
                       <div className="flex gap-2 justify-end items-center">
                         {folioSlug && (
                           <a
-                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}`}
+                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}&tab=documents`}
                             className="text-xs px-3 py-1 rounded border border-transparent text-zinc-500 hover:text-indigo-400 hover:border-indigo-800 transition-colors"
                           >
                             View
@@ -508,7 +508,7 @@ export default function DocumentsTable({ folioSlug, isViewer = false }: { folioS
                       <div className="flex gap-2 justify-end items-center">
                         {folioSlug && (
                           <a
-                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}`}
+                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}&tab=documents`}
                             onClick={(e) => e.stopPropagation()}
                             className="text-xs px-3 py-1 rounded border border-transparent text-zinc-500 hover:text-indigo-400 hover:border-indigo-800 transition-colors"
                             title="View / Edit"

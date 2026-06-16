@@ -11,12 +11,12 @@ export type StoredConversation = {
 }
 
 type Props = {
-  onRestore?: (conversation: StoredConversation) => void
+  onRestore: (conversation: StoredConversation) => void
   folioSlug?: string
+  isViewer?: boolean
 }
 
-export default function ConversationHistory({ onRestore, folioSlug }: Props) {
-  const isViewer = !onRestore
+export default function ConversationHistory({ onRestore, folioSlug, isViewer = false }: Props) {
   const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [conversations, setConversations] = useState<StoredConversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -130,9 +130,10 @@ export default function ConversationHistory({ onRestore, folioSlug }: Props) {
           return (
             <li
               key={conv.id}
-              className="flex items-start gap-3 px-4 py-4 hover:bg-zinc-800/40 transition-colors group"
-              onClick={(e) => {
-                if (isConfirming) { e.stopPropagation(); setConfirmDelete(null) }
+              className="flex items-start gap-3 px-4 py-4 hover:bg-zinc-800/40 transition-colors group cursor-pointer"
+              onClick={() => {
+                if (isConfirming) { setConfirmDelete(null); return }
+                handleRestore(conv)
               }}
             >
               <div className="flex-1 min-w-0">

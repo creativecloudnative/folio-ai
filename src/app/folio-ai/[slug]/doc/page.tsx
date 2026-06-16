@@ -7,7 +7,7 @@ import ArtifactViewer from '@/components/ArtifactViewer'
 
 type Props = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ source?: string }>
+  searchParams: Promise<{ source?: string; tab?: string }>
 }
 
 export const metadata = {
@@ -16,7 +16,7 @@ export const metadata = {
 
 export default async function DocViewerPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { source } = await searchParams
+  const { source, tab } = await searchParams
 
   if (!source) notFound()
 
@@ -48,7 +48,7 @@ export default async function DocViewerPage({ params, searchParams }: Props) {
       type={type}
       source={source}
       isOwner={isOwner}
-      backHref={`/folio-ai/${slug}/design`}
+      backHref={`/folio-ai/${slug}/design${tab ? `?tab=${tab}` : ''}`}
       backLabel="Studio"
     />
   )
