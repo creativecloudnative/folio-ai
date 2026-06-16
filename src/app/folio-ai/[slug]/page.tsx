@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { getFolioBySlug } from '@/lib/folios'
+import { getFolioBySlug, getFolioByOwnerId } from '@/lib/folios'
 import { isFolioInvited } from '@/lib/invites'
 import {
   getPublishedCompositionsForFolio,
@@ -272,10 +272,11 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   if (!folio.is_public && !isOwner && !isInvited) notFound()
 
-  const [sections, bioExcerpt, videos] = await Promise.all([
+  const [sections, bioExcerpt, videos, viewerFolio] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
     fetchIntroExcerpt(folio.owner_id),
     getFolioVideos(folio.id),
+    (!isOwner && session?.user?.id) ? getFolioByOwnerId(session.user.id) : Promise.resolve(null),
   ])
 
   const hasContent = sections.length > 0
@@ -318,6 +319,14 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
                   Settings
                 </Link>
               </>
+            )}
+            {!isOwner && viewerFolio && (
+              <Link
+                href={`/folio-ai/${viewerFolio.slug}`}
+                className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+              >
+                My folio
+              </Link>
             )}
             {session?.user && (
               <SignOutButton className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">

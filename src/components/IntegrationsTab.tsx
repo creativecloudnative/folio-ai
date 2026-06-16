@@ -45,7 +45,7 @@ export default function IntegrationsTab({ folioSlug, initialCalUsername }: Props
     : null
 
   return (
-    <div className="p-6 max-w-xl space-y-5">
+    <div className="h-full overflow-y-auto p-6 max-w-xl space-y-5">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
         <div className="flex items-start gap-3 mb-5">
           <div className="mt-0.5 w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">

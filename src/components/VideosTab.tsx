@@ -70,7 +70,7 @@ export default function VideosTab({ folioSlug, initialVideos, isViewer = false }
   }
 
   return (
-    <div className="p-6 max-w-2xl space-y-5">
+    <div className="h-full overflow-y-auto p-6 max-w-2xl space-y-5">
 
       {/* Add video */}
       {!isViewer && (

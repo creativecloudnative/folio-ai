@@ -152,7 +152,7 @@ export default function SharingTab({ folioSlug, initialIsPublic, initialInvites,
   }
 
   return (
-    <div className="p-6 max-w-xl space-y-5">
+    <div className="h-full overflow-y-auto p-6 max-w-xl space-y-5">
 
       {/* Visibility toggle */}
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
