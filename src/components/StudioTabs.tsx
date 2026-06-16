@@ -135,7 +135,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
-      <div className="flex border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0">
+      <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0 scrollbar-none"  style={{ scrollbarWidth: 'none' }}>
         {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos'] as Tab[]).map((tab) => (
           <button
             key={tab}
