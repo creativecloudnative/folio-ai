@@ -72,7 +72,7 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
 }
 
 const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
-const VIEWER_TABS: Tab[] = ['history', 'documents', 'compositions', 'videos']
+const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
   const router       = useRouter()
@@ -97,14 +97,15 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
   // Auto-load the most recently updated conversation on mount
   useEffect(() => {
     let cancelled = false
+    const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
     async function loadLatest() {
       try {
-        const listRes = await fetch('/api/studio/conversations')
+        const listRes = await fetch(`${apiBase}/conversations`)
         if (!listRes.ok || cancelled) return
         const { conversations } = await listRes.json()
         if (!conversations?.length || cancelled) return
 
-        const convRes = await fetch(`/api/studio/conversations/${conversations[0].id}`)
+        const convRes = await fetch(`${apiBase}/conversations/${conversations[0].id}`)
         if (!convRes.ok || cancelled) return
         const { conversation } = await convRes.json()
         if (!cancelled) {
@@ -120,7 +121,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
     }
     loadLatest()
     return () => { cancelled = true }
-  }, [])
+  }, [isViewer, folioSlug])
 
   function handleRename(id: string, title: string) {
     setRestoredConversation((prev) => prev?.id === id ? { ...prev, title } : prev)
@@ -187,6 +188,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
             onNewConversation={() => setRestoredConversation(null)}
             onRename={handleRename}
             initialBalance={initialBalance}
+            isViewer={isViewer}
           />
         )}
         {active === 'history' && (

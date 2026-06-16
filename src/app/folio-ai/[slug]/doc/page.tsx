@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { getFolioBySlug } from '@/lib/folios'
+import { resolveStudioOwner } from '@/lib/studio-access'
 import { sql } from '@/lib/db'
 import ArtifactViewer from '@/components/ArtifactViewer'
 
@@ -21,8 +22,12 @@ export default async function DocViewerPage({ params, searchParams }: Props) {
 
   const [folio, session] = await Promise.all([getFolioBySlug(slug), auth()])
   if (!folio) notFound()
-  if (!session?.user || session.user.id !== folio.owner_id) {
-    redirect(`/folio-ai/${slug}`)
+
+  const isOwner = session?.user?.id === folio.owner_id
+
+  if (!isOwner) {
+    const accessible = await resolveStudioOwner(slug, session)
+    if (!accessible) redirect(`/folio-ai/${slug}`)
   }
 
   const rows = await sql`
@@ -42,7 +47,7 @@ export default async function DocViewerPage({ params, searchParams }: Props) {
       content={content}
       type={type}
       source={source}
-      isOwner={true}
+      isOwner={isOwner}
       backHref={`/folio-ai/${slug}/design`}
       backLabel="Studio"
     />
