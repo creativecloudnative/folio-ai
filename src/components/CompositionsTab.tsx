@@ -128,7 +128,8 @@ function TypesPanel({ onClose, onTypeCreated }: {
 }
 
 // ─── Main tab ─────────────────────────────────────────────────────────────────
-export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
+export default function CompositionsTab({ folioSlug, isViewer = false }: { folioSlug?: string; isViewer?: boolean }) {
+  const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [compositions, setCompositions]       = useState<Composition[]>([])
   const [compositionTypes, setCompositionTypes] = useState<CompositionType[]>([])
   const [loading, setLoading]                 = useState(true)
@@ -160,9 +161,9 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
     setError(null)
     try {
       const [cRes, tRes, dRes] = await Promise.all([
-        fetch('/api/studio/compositions'),
-        fetch('/api/studio/composition-types'),
-        fetch('/api/studio/documents'),
+        fetch(`${apiBase}/compositions`),
+        fetch(`${apiBase}/composition-types`),
+        fetch(`${apiBase}/documents`),
       ])
       if (!cRes.ok) throw new Error(`HTTP ${cRes.status}`)
       const [cData, tData, dData] = await Promise.all([cRes.json(), tRes.json(), dRes.json()])
@@ -174,7 +175,7 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [apiBase])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchAll() }, [fetchAll])
@@ -190,7 +191,7 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
     setNewSectionName('')
     setItemsLoading(true)
     try {
-      const res = await fetch(`/api/studio/compositions/${comp.id}/items`)
+      const res = await fetch(`${apiBase}/compositions/${comp.id}/items`)
       if (res.ok) { const d = await res.json(); setItems(d.items) }
     } finally { setItemsLoading(false) }
   }
@@ -395,7 +396,7 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
   const nonFolioCompositions = compositions.filter((c) => c.type !== 'folio' && c.id !== selected?.id)
 
   if (loading) return <div className="flex items-center justify-center flex-1 text-zinc-500 text-sm">Loading…</div>
-  if (showTypes) return (
+  if (!isViewer && showTypes) return (
     <TypesPanel
       onClose={() => { setShowTypes(false); fetchAll(true) }}
       onTypeCreated={(type) => setCompositionTypes((prev) => [...prev, type])}
@@ -408,20 +409,22 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
       <div className="w-64 shrink-0 border-r border-zinc-800 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700 shrink-0">
           <span className="text-xs text-zinc-500">{compositions.length} composition{compositions.length !== 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setShowTypes(true)}
-              className="text-xs px-2 py-1 rounded border border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
-              title="Manage types"
-            >⚙</button>
-            <button
-              onClick={() => setCreating((v) => !v)}
-              className={`text-xs px-2 py-1 rounded border transition-colors ${creating ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40' : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'}`}
-            >{creating ? 'Cancel' : '+ New'}</button>
-          </div>
+          {!isViewer && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowTypes(true)}
+                className="text-xs px-2 py-1 rounded border border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                title="Manage types"
+              >⚙</button>
+              <button
+                onClick={() => setCreating((v) => !v)}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${creating ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40' : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'}`}
+              >{creating ? 'Cancel' : '+ New'}</button>
+            </div>
+          )}
         </div>
 
-        {creating && (
+        {!isViewer && creating && (
           <div className="border-b border-zinc-700 px-4 py-3 space-y-2 shrink-0">
             <input
               autoFocus
@@ -480,10 +483,12 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
                     {comp.published && <span className="text-[10px] text-emerald-400">● live</span>}
                   </div>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteComposition(comp.id) }}
-                  className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 text-xs transition-all shrink-0"
-                >✕</button>
+                {!isViewer && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteComposition(comp.id) }}
+                    className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 text-xs transition-all shrink-0"
+                  >✕</button>
+                )}
               </div>
             </li>
           ))}
@@ -503,7 +508,7 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
               <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${typeBadge(selected.type)}`}>{selected.type}</span>
             </div>
             <div className="flex items-center gap-2">
-              {publishError && <span className="text-xs text-red-400">{publishError}</span>}
+              {!isViewer && publishError && <span className="text-xs text-red-400">{publishError}</span>}
               {publishedSource && folioSlug && selected.type !== 'folio' && (
                 <a
                   href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(publishedSource)}`}
@@ -511,22 +516,24 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
                   className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                 >View live ↗</a>
               )}
-              {dirty && (
+              {!isViewer && dirty && (
                 <button onClick={saveItems} disabled={saving} className="text-xs px-3 py-1.5 rounded border border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-white disabled:opacity-40 transition-colors">
                   {saving ? 'Saving…' : 'Save'}
                 </button>
               )}
-              <button
-                onClick={publish}
-                disabled={publishing || items.length === 0}
-                className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition-colors"
-              >
-                {publishing
-                  ? (selected.type === 'folio' ? 'Applying…' : 'Publishing…')
-                  : selected.type === 'folio'
-                    ? 'Apply to folio'
-                    : selected.published ? 'Republish' : 'Publish'}
-              </button>
+              {!isViewer && (
+                <button
+                  onClick={publish}
+                  disabled={publishing || items.length === 0}
+                  className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition-colors"
+                >
+                  {publishing
+                    ? (selected.type === 'folio' ? 'Applying…' : 'Publishing…')
+                    : selected.type === 'folio'
+                      ? 'Apply to folio'
+                      : selected.published ? 'Republish' : 'Publish'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -544,17 +551,25 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
                     <div key={label || `section-${sectionIdx}`} className="rounded-lg border border-zinc-700 bg-zinc-900/20 overflow-hidden">
                       {/* Section header */}
                       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800 bg-zinc-900/50">
-                        <div className="flex flex-col gap-0.5 shrink-0">
-                          <button onClick={() => moveSectionDir(label, -1)} disabled={sectionIdx === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none">▲</button>
-                          <button onClick={() => moveSectionDir(label, 1)} disabled={sectionIdx === sectionLabels.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none">▼</button>
-                        </div>
-                        <input
-                          value={label}
-                          onChange={(e) => renameSection(label, e.target.value)}
-                          placeholder="Section name"
-                          className="flex-1 bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-indigo-500 px-1 py-0.5 text-xs font-semibold text-zinc-200 placeholder-zinc-600 focus:outline-none transition-colors"
-                        />
-                        <button onClick={() => deleteSection(label)} className="text-zinc-600 hover:text-red-400 text-xs transition-colors shrink-0" title="Delete section">✕</button>
+                        {!isViewer && (
+                          <div className="flex flex-col gap-0.5 shrink-0">
+                            <button onClick={() => moveSectionDir(label, -1)} disabled={sectionIdx === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none">▲</button>
+                            <button onClick={() => moveSectionDir(label, 1)} disabled={sectionIdx === sectionLabels.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none">▼</button>
+                          </div>
+                        )}
+                        {isViewer ? (
+                          <span className="flex-1 px-1 py-0.5 text-xs font-semibold text-zinc-200">{label}</span>
+                        ) : (
+                          <input
+                            value={label}
+                            onChange={(e) => renameSection(label, e.target.value)}
+                            placeholder="Section name"
+                            className="flex-1 bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-indigo-500 px-1 py-0.5 text-xs font-semibold text-zinc-200 placeholder-zinc-600 focus:outline-none transition-colors"
+                          />
+                        )}
+                        {!isViewer && (
+                          <button onClick={() => deleteSection(label)} className="text-zinc-600 hover:text-red-400 text-xs transition-colors shrink-0" title="Delete section">✕</button>
+                        )}
                       </div>
 
                       {/* Items within this section */}
@@ -562,66 +577,80 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
                         <div className="divide-y divide-zinc-800/50">
                           {sectionItems.map(({ it, idx }) => (
                             <div key={it.id} className="flex items-center gap-2 px-4 py-3">
-                              <div className="flex flex-col gap-0.5 shrink-0">
-                                <button
-                                  onClick={() => moveItem(idx, -1)}
-                                  disabled={idx === 0 || items[idx - 1]?.section_label !== label}
-                                  className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none"
-                                >▲</button>
-                                <button
-                                  onClick={() => moveItem(idx, 1)}
-                                  disabled={idx === items.length - 1 || items[idx + 1]?.section_label !== label}
-                                  className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none"
-                                >▼</button>
-                              </div>
+                              {!isViewer && (
+                                <div className="flex flex-col gap-0.5 shrink-0">
+                                  <button
+                                    onClick={() => moveItem(idx, -1)}
+                                    disabled={idx === 0 || items[idx - 1]?.section_label !== label}
+                                    className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none"
+                                  >▲</button>
+                                  <button
+                                    onClick={() => moveItem(idx, 1)}
+                                    disabled={idx === items.length - 1 || items[idx + 1]?.section_label !== label}
+                                    className="text-zinc-600 hover:text-zinc-300 disabled:opacity-20 text-[10px] leading-none"
+                                  >▼</button>
+                                </div>
+                              )}
                               <div className="flex-1">
                                 {it.ref_composition_id !== null ? (
-                                  <select
-                                    value={it.ref_composition_id ?? ''}
-                                    onChange={(e) => updateItem(idx, 'ref_composition_id', e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                  >
-                                    <option value="">— select a composition —</option>
-                                    {nonFolioCompositions.map((c) => (
-                                      <option key={c.id} value={c.id}>[{c.type}] {c.title}{c.published ? ' ●' : ''}</option>
-                                    ))}
-                                  </select>
+                                  isViewer ? (
+                                    <span className="text-xs text-zinc-300">[composition] {it.ref_composition_title ?? '—'}</span>
+                                  ) : (
+                                    <select
+                                      value={it.ref_composition_id ?? ''}
+                                      onChange={(e) => updateItem(idx, 'ref_composition_id', e.target.value)}
+                                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="">— select a composition —</option>
+                                      {nonFolioCompositions.map((c) => (
+                                        <option key={c.id} value={c.id}>[{c.type}] {c.title}{c.published ? ' ●' : ''}</option>
+                                      ))}
+                                    </select>
+                                  )
                                 ) : (
-                                  <select
-                                    value={it.document_source ?? ''}
-                                    onChange={(e) => updateItem(idx, 'document_source', e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                  >
-                                    <option value="">— select a document —</option>
-                                    {docs.map((d) => (
-                                      <option key={d.source} value={d.source}>[{d.type}] {d.title}</option>
-                                    ))}
-                                  </select>
+                                  isViewer ? (
+                                    <span className="text-xs text-zinc-300">{it.document_title ?? it.document_source ?? '—'}</span>
+                                  ) : (
+                                    <select
+                                      value={it.document_source ?? ''}
+                                      onChange={(e) => updateItem(idx, 'document_source', e.target.value)}
+                                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="">— select a document —</option>
+                                      {docs.map((d) => (
+                                        <option key={d.source} value={d.source}>[{d.type}] {d.title}</option>
+                                      ))}
+                                    </select>
+                                  )
                                 )}
                               </div>
-                              <button onClick={() => removeItem(idx)} className="text-zinc-600 hover:text-red-400 text-xs transition-colors shrink-0">✕</button>
+                              {!isViewer && (
+                                <button onClick={() => removeItem(idx)} className="text-zinc-600 hover:text-red-400 text-xs transition-colors shrink-0">✕</button>
+                              )}
                             </div>
                           ))}
                         </div>
                       )}
 
                       {/* Per-section add buttons */}
-                      <div className="flex gap-2 px-4 py-3 border-t border-zinc-800/50">
-                        <button
-                          onClick={() => addDocumentItem(label)}
-                          className="flex-1 text-xs py-1.5 rounded border border-dashed border-zinc-700 text-zinc-500 hover:border-indigo-600 hover:text-indigo-400 transition-colors"
-                        >+ Document</button>
-                        <button
-                          onClick={() => addCompositionItem(label)}
-                          className="flex-1 text-xs py-1.5 rounded border border-dashed border-zinc-700 text-zinc-500 hover:border-violet-600 hover:text-violet-400 transition-colors"
-                        >+ Composition</button>
-                      </div>
+                      {!isViewer && (
+                        <div className="flex gap-2 px-4 py-3 border-t border-zinc-800/50">
+                          <button
+                            onClick={() => addDocumentItem(label)}
+                            className="flex-1 text-xs py-1.5 rounded border border-dashed border-zinc-700 text-zinc-500 hover:border-indigo-600 hover:text-indigo-400 transition-colors"
+                          >+ Document</button>
+                          <button
+                            onClick={() => addCompositionItem(label)}
+                            className="flex-1 text-xs py-1.5 rounded border border-dashed border-zinc-700 text-zinc-500 hover:border-violet-600 hover:text-violet-400 transition-colors"
+                          >+ Composition</button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
 
                 {/* Add Section */}
-                {addingSection ? (
+                {!isViewer && (addingSection ? (
                   <div className="flex gap-2">
                     <input
                       autoFocus
@@ -642,7 +671,7 @@ export default function CompositionsTab({ folioSlug }: { folioSlug?: string }) {
                     onClick={() => setAddingSection(true)}
                     className="w-full text-xs py-2.5 rounded-lg border border-dashed border-zinc-700 text-zinc-500 hover:border-indigo-600 hover:text-indigo-400 transition-colors"
                   >+ Add Section</button>
-                )}
+                ))}
 
                 {items.length > 0 && selected.type !== 'folio' && (
                   <p className="text-xs text-zinc-600 pt-1">

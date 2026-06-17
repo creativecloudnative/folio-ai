@@ -8,8 +8,10 @@ import ConversationHistory, { type StoredConversation } from './ConversationHist
 import CompositionsTab from './CompositionsTab'
 import SharingTab from './SharingTab'
 import IntegrationsTab from './IntegrationsTab'
+import VideosTab from './VideosTab'
+import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos'
 
 type RestoredConversation = {
   id: string
@@ -20,11 +22,15 @@ type RestoredConversation = {
 type TokenBalance = { budget: number; used: number; remaining: number }
 
 type Props = {
+  isViewer?: boolean
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
+  initialStudioIsPublic?: boolean
   initialInvites?: string[]
+  initialStudioInvites?: string[]
   initialCalUsername?: string | null
+  initialVideos?: FolioVideo[]
 }
 
 const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = {
@@ -58,15 +64,22 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Connect external services so your AI assistant can take real-world actions.',
     detail: 'Connect Cal.com to enable meeting scheduling directly from the chat. When a Cal.com username is set, your assistant can generate pre-filled booking links for visitors. Without it, the scheduling capability is hidden from the assistant entirely.',
   },
+  videos: {
+    label: 'Videos',
+    short: 'Add YouTube videos to your folio — talks, demos, and walkthroughs.',
+    detail: 'Paste any YouTube URL to pull in the title and thumbnail automatically. Added videos appear in a Talks & Videos section on your public folio page. Add a short description to give visitors context before they click.',
+  },
 }
 
-const VALID_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
+const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
-export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic, initialInvites, initialCalUsername }: Props) {
+export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
-  const initialTab   = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'chat'
+  const visibleTabs  = isViewer ? VIEWER_TABS : OWNER_TABS
+  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer ? 'history' : 'chat')
 
   const [active, setActive] = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
@@ -84,14 +97,15 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
   // Auto-load the most recently updated conversation on mount
   useEffect(() => {
     let cancelled = false
+    const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
     async function loadLatest() {
       try {
-        const listRes = await fetch('/api/studio/conversations')
+        const listRes = await fetch(`${apiBase}/conversations`)
         if (!listRes.ok || cancelled) return
         const { conversations } = await listRes.json()
         if (!conversations?.length || cancelled) return
 
-        const convRes = await fetch(`/api/studio/conversations/${conversations[0].id}`)
+        const convRes = await fetch(`${apiBase}/conversations/${conversations[0].id}`)
         if (!convRes.ok || cancelled) return
         const { conversation } = await convRes.json()
         if (!cancelled) {
@@ -107,7 +121,7 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
     }
     loadLatest()
     return () => { cancelled = true }
-  }, [])
+  }, [isViewer, folioSlug])
 
   function handleRename(id: string, title: string) {
     setRestoredConversation((prev) => prev?.id === id ? { ...prev, title } : prev)
@@ -127,8 +141,8 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
-      <div className="flex border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0">
-        {(['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations'] as Tab[]).map((tab) => (
+      <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 px-4 shrink-0 scrollbar-none"  style={{ scrollbarWidth: 'none' }}>
+        {visibleTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
@@ -174,18 +188,32 @@ export default function StudioTabs({ initialBalance, folioSlug, initialIsPublic,
             onNewConversation={() => setRestoredConversation(null)}
             onRename={handleRename}
             initialBalance={initialBalance}
+            isViewer={isViewer}
           />
         )}
         {active === 'history' && (
-          <ConversationHistory onRestore={handleRestore} />
+          <ConversationHistory
+            onRestore={handleRestore}
+            folioSlug={isViewer ? folioSlug : undefined}
+            isViewer={isViewer}
+          />
         )}
-        {active === 'documents' && <DocumentsTable folioSlug={folioSlug} />}
-        {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} />}
+        {active === 'documents' && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer} />}
+        {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer} />}
         {active === 'sharing' && folioSlug && (
-          <SharingTab folioSlug={folioSlug} initialIsPublic={initialIsPublic ?? false} initialInvites={initialInvites ?? []} />
+          <SharingTab
+            folioSlug={folioSlug}
+            initialIsPublic={initialIsPublic ?? false}
+            initialInvites={initialInvites ?? []}
+            initialStudioIsPublic={initialStudioIsPublic ?? false}
+            initialStudioInvites={initialStudioInvites ?? []}
+          />
         )}
         {active === 'integrations' && folioSlug && (
           <IntegrationsTab folioSlug={folioSlug} initialCalUsername={initialCalUsername ?? null} />
+        )}
+        {active === 'videos' && folioSlug && (
+          <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
         )}
       </div>
     </div>

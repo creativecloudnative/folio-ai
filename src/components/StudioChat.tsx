@@ -79,6 +79,7 @@ type Props = {
   onNewConversation?: () => void
   onRename?: (id: string, title: string) => void
   initialBalance?: TokenBalance | null
+  isViewer?: boolean
 }
 
 // ── Studio capabilities panel ─────────────────────────────────────────────────
@@ -155,7 +156,7 @@ function StudioCapabilitiesPanel() {
   )
 }
 
-export default function StudioChat({ restoredConversation, onNewConversation, onRename, initialBalance }: Props) {
+export default function StudioChat({ restoredConversation, onNewConversation, onRename, initialBalance, isViewer = false }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 'greeting', role: 'assistant', content: GREETING },
   ])
@@ -559,14 +560,14 @@ export default function StudioChat({ restoredConversation, onNewConversation, on
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe a project, share a thought, or ask to list existing content…"
+            placeholder={isViewer ? 'Chat is read-only in viewer mode' : 'Describe a project, share a thought, or ask to list existing content…'}
             rows={1}
-            disabled={isLoading}
+            disabled={isLoading || isViewer}
             className="flex-1 bg-zinc-800 border border-zinc-600 rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
           />
           <button
             onClick={sendMessage}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || isViewer}
             className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
           >
             {isLoading ? 'Sending…' : 'Send'}

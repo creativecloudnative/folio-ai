@@ -49,7 +49,8 @@ type UploadState = 'idle' | 'uploading' | 'success' | 'error'
 
 type SortField = 'type' | 'title' | 'created_at' | 'chunk_count'
 
-export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
+export default function DocumentsTable({ folioSlug, isViewer = false }: { folioSlug?: string; isViewer?: boolean }) {
+  const apiBase = isViewer && folioSlug ? `/api/folio-ai/${folioSlug}/studio` : '/api/studio'
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,7 +75,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/studio/documents')
+      const res = await fetch(`${apiBase}/documents`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setDocs(data.documents)
@@ -83,7 +84,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [apiBase])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchDocs() }, [fetchDocs])
@@ -342,30 +343,34 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
           className="flex-1 min-w-[160px] max-w-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <div className="flex gap-2 ml-auto">
-          <button
-            onClick={handleExportAll}
-            disabled={exporting || docs.length === 0}
-            className="text-xs px-3 py-1.5 rounded border border-zinc-600 text-zinc-400 hover:border-emerald-600 hover:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Download all content as a ZIP of Markdown files"
-          >
-            {exporting ? 'Exporting…' : '↓ Export all'}
-          </button>
-          <button
-            onClick={() => { setShowUpload((v) => !v); setUploadState('idle'); setUploadMsg('') }}
-            className={`text-xs px-3 py-1.5 rounded border transition-colors ${
-              showUpload
-                ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40'
-                : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'
-            }`}
-          >
-            {showUpload ? 'Cancel' : '+ Upload'}
-          </button>
+          {!isViewer && (
+            <button
+              onClick={handleExportAll}
+              disabled={exporting || docs.length === 0}
+              className="text-xs px-3 py-1.5 rounded border border-zinc-600 text-zinc-400 hover:border-emerald-600 hover:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Download all content as a ZIP of Markdown files"
+            >
+              {exporting ? 'Exporting…' : '↓ Export all'}
+            </button>
+          )}
+          {!isViewer && (
+            <button
+              onClick={() => { setShowUpload((v) => !v); setUploadState('idle'); setUploadMsg('') }}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                showUpload
+                  ? 'border-indigo-500 text-indigo-400 bg-indigo-950/40'
+                  : 'border-zinc-600 text-zinc-400 hover:border-indigo-500 hover:text-indigo-400'
+              }`}
+            >
+              {showUpload ? 'Cancel' : '+ Upload'}
+            </button>
+          )}
         </div>
       </div>
 
 
       {/* Inline upload form */}
-      {uploadForm}
+      {!isViewer && uploadForm}
 
       {/* Table or empty state */}
       {docs.length === 0 ? (
@@ -423,7 +428,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                       <div className="flex gap-2 justify-end items-center">
                         {folioSlug && (
                           <a
-                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}`}
+                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}&tab=documents`}
                             className="text-xs px-3 py-1 rounded border border-transparent text-zinc-500 hover:text-indigo-400 hover:border-indigo-800 transition-colors"
                           >
                             View
@@ -503,7 +508,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                       <div className="flex gap-2 justify-end items-center">
                         {folioSlug && (
                           <a
-                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}`}
+                            href={`/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(doc.source)}&tab=documents`}
                             onClick={(e) => e.stopPropagation()}
                             className="text-xs px-3 py-1 rounded border border-transparent text-zinc-500 hover:text-indigo-400 hover:border-indigo-800 transition-colors"
                             title="View / Edit"
@@ -511,7 +516,7 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                             View
                           </a>
                         )}
-                        {isPublishable && (
+                        {!isViewer && isPublishable && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handlePublish(doc.source, !doc.is_published) }}
                             disabled={isPublishing}
@@ -534,19 +539,21 @@ export default function DocumentsTable({ folioSlug }: { folioSlug?: string }) {
                         >
                           ↓
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(doc.source) }}
-                          disabled={isDeleting}
-                          className={`text-xs px-3 py-1 rounded transition-colors ${
-                            isDeleting
-                              ? 'text-zinc-600 cursor-not-allowed'
-                              : isConfirming
-                                ? 'bg-red-600 hover:bg-red-500 text-white'
-                                : 'text-zinc-500 hover:text-red-400 border border-transparent hover:border-red-800'
-                          }`}
-                        >
-                          {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm delete' : 'Delete'}
-                        </button>
+                        {!isViewer && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(doc.source) }}
+                            disabled={isDeleting}
+                            className={`text-xs px-3 py-1 rounded transition-colors ${
+                              isDeleting
+                                ? 'text-zinc-600 cursor-not-allowed'
+                                : isConfirming
+                                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                                  : 'text-zinc-500 hover:text-red-400 border border-transparent hover:border-red-800'
+                            }`}
+                          >
+                            {isDeleting ? 'Deleting…' : isConfirming ? 'Confirm delete' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
