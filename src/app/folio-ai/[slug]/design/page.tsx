@@ -21,15 +21,14 @@ export default async function FolioDesignPage({
   const { slug } = await params
   const [session, folio] = await Promise.all([auth(), getFolioBySlug(slug)])
 
-  if (!session?.user) redirect(`/folio-ai/${slug}`)
   if (!folio) notFound()
 
-  const isOwner = folio.owner_id === session.user.id
+  const isOwner = !!session?.user && folio.owner_id === session.user.id
 
   if (!isOwner) {
-    // Check studio access — public studio or explicitly invited
+    // Public studios are open to anyone; private studios require sign-in + invite
     const hasAccess = folio.studio_is_public ||
-      (!!session.user.email && await isStudioInvited(folio.id, session.user.email))
+      (!!session?.user?.email && await isStudioInvited(folio.id, session.user.email))
     if (!hasAccess) redirect(`/folio-ai/${slug}`)
   }
 
@@ -58,8 +57,8 @@ export default async function FolioDesignPage({
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
-          <span>{session.user.name}</span>
-          <span>·</span>
+          {session?.user && <span>{session.user.name}</span>}
+          {session?.user && <span>·</span>}
           <a href={`/folio-ai/${slug}`} className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
             View folio
           </a>
@@ -67,10 +66,14 @@ export default async function FolioDesignPage({
           <Link href="/" className="hover:text-zinc-300 transition-colors">
             Home
           </Link>
-          <span>·</span>
-          <SignOutButton className="hover:text-zinc-300 transition-colors">
-            Sign out
-          </SignOutButton>
+          {session?.user && (
+            <>
+              <span>·</span>
+              <SignOutButton className="hover:text-zinc-300 transition-colors">
+                Sign out
+              </SignOutButton>
+            </>
+          )}
         </div>
       </header>
 
