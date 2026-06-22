@@ -9,20 +9,29 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
 
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return Response.json({ error: 'Image storage is not configured on this server' }, { status: 503 })
+  }
+
   let body: { url: string }
   try { body = await req.json() } catch { return Response.json({ error: 'invalid_json' }, { status: 400 }) }
   if (!body.url) return Response.json({ error: 'url required' }, { status: 400 })
 
-  // Re-upload the generated image from Blob so the headshot_url points to the canonical path
-  const imageRes = await fetch(body.url)
-  if (!imageRes.ok) return Response.json({ error: 'Could not load selected image' }, { status: 502 })
-  const buffer = await imageRes.arrayBuffer()
+  try {
+    const imageRes = await fetch(body.url)
+    if (!imageRes.ok) return Response.json({ error: 'Could not load selected image' }, { status: 502 })
+    const buffer = await imageRes.arrayBuffer()
 
-  const { url } = await put(`headshots/${session.user.id}/headshot.png`, buffer, {
-    access: 'public',
-    contentType: 'image/png',
-  })
+    const { url } = await put(`headshots/${session.user.id}/headshot.png`, buffer, {
+      access: 'public',
+      contentType: 'image/png',
+    })
 
-  await setHeadshotUrl(session.user.id, url)
-  return Response.json({ ok: true, url })
+    await setHeadshotUrl(session.user.id, url)
+    return Response.json({ ok: true, url })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[headshot save-generated]', message)
+    return Response.json({ error: message }, { status: 500 })
+  }
 }
