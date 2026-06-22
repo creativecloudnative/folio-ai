@@ -10,8 +10,13 @@ type ImageGenBalance = {
   reset_at: string
 }
 
+// Proxy URL for the owner's headshot — never exposes the raw Blob URL to the client
+const OWNER_IMAGE_URL = '/api/studio/headshot/image'
+
 export default function ProfileTab() {
-  const [headshotUrl, setHeadshotUrl] = useState<string | null>(null)
+  const [hasHeadshot, setHasHeadshot] = useState(false)
+  // Cache-bust key so the <img> reloads after upload/import without a page refresh
+  const [imageBust, setImageBust] = useState(0)
   const [visible, setVisible] = useState(false)
   const [balance, setBalance] = useState<ImageGenBalance | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,7 +35,7 @@ export default function ProfileTab() {
     fetch('/api/studio/headshot')
       .then((r) => r.json())
       .then((data) => {
-        setHeadshotUrl(data.headshot_url ?? null)
+        setHasHeadshot(data.has_headshot ?? false)
         setVisible(data.headshot_visible ?? false)
         setBalance(data.imageGenBalance ?? null)
       })
@@ -57,7 +62,8 @@ export default function ProfileTab() {
     const res = await fetch('/api/studio/headshot/upload', { method: 'POST', body: form })
     const data = await res.json()
     if (res.ok) {
-      setHeadshotUrl(data.url)
+      setHasHeadshot(true)
+      setImageBust((n) => n + 1)
       setGeneratedOptions([])
     } else {
       setError(data.error ?? 'Upload failed')
@@ -72,7 +78,8 @@ export default function ProfileTab() {
     const res = await fetch('/api/studio/headshot/import-linkedin', { method: 'POST' })
     const data = await res.json()
     if (res.ok) {
-      setHeadshotUrl(data.url)
+      setHasHeadshot(true)
+      setImageBust((n) => n + 1)
       setGeneratedOptions([])
     } else {
       setError(data.error ?? 'Import failed')
@@ -96,18 +103,18 @@ export default function ProfileTab() {
     setGenerating(false)
   }
 
-  async function saveOption(url: string) {
+  async function saveOption(dataUrl: string) {
     setSavingOption(true)
     setError(null)
-    // Upload the generated blob URL as the new headshot by fetching + re-uploading
     const res = await fetch('/api/studio/headshot/save-generated', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ dataUrl }),
     })
     const data = await res.json()
     if (res.ok) {
-      setHeadshotUrl(data.url)
+      setHasHeadshot(true)
+      setImageBust((n) => n + 1)
       setGeneratedOptions([])
       setSelectedOption(null)
     } else {
@@ -136,15 +143,22 @@ export default function ProfileTab() {
         <h3 className="text-sm font-semibold text-zinc-300">Headshot</h3>
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 shrink-0 flex items-center justify-center">
-            {headshotUrl ? (
-              <Image src={headshotUrl} alt="Headshot" width={80} height={80} className="object-cover w-full h-full" unoptimized />
+            {hasHeadshot ? (
+              <Image
+                src={`${OWNER_IMAGE_URL}?v=${imageBust}`}
+                alt="Headshot"
+                width={80}
+                height={80}
+                className="object-cover w-full h-full"
+                unoptimized
+              />
             ) : (
               <span className="text-3xl text-zinc-600">👤</span>
             )}
           </div>
           <div className="space-y-2">
             <p className="text-xs text-zinc-500">
-              {headshotUrl ? 'Your headshot is set.' : 'No headshot uploaded yet.'}
+              {hasHeadshot ? 'Your headshot is set.' : 'No headshot uploaded yet.'}
             </p>
             <button
               onClick={toggleVisible}
@@ -209,13 +223,13 @@ export default function ProfileTab() {
 
         <button
           onClick={handleGenerate}
-          disabled={!headshotUrl || generating || (balance?.remaining ?? 0) === 0}
+          disabled={!hasHeadshot || generating || (balance?.remaining ?? 0) === 0}
           className="w-full px-4 py-2.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
         >
           {generating ? 'Generating 3 options…' : 'Generate 3 options'}
         </button>
 
-        {!headshotUrl && (
+        {!hasHeadshot && (
           <p className="text-[11px] text-amber-500">Upload a headshot above before generating.</p>
         )}
         {balance?.remaining === 0 && (

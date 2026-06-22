@@ -15,7 +15,7 @@ export async function GET() {
   const imageGenBalance = await getImageGenBalance(session.user.id)
 
   return Response.json({
-    headshot_url: folio.headshot_url,
+    has_headshot: !!folio.headshot_url,
     headshot_visible: folio.headshot_visible,
     imageGenBalance,
   })

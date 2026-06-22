@@ -366,7 +366,7 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
               <div className="shrink-0 mb-8 md:mb-0 md:order-last">
                 <div className="w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden border-2 border-zinc-700/60 shadow-xl">
                   <Image
-                    src={folio.headshot_url}
+                    src={`/api/folio-ai/${slug}/headshot`}
                     alt={folio.name}
                     width={176}
                     height={176}

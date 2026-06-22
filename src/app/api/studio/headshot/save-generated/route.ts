@@ -13,14 +13,15 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Image storage is not configured on this server' }, { status: 503 })
   }
 
-  let body: { url: string }
+  let body: { dataUrl: string }
   try { body = await req.json() } catch { return Response.json({ error: 'invalid_json' }, { status: 400 }) }
-  if (!body.url) return Response.json({ error: 'url required' }, { status: 400 })
+  if (!body.dataUrl?.startsWith('data:image/')) {
+    return Response.json({ error: 'dataUrl required' }, { status: 400 })
+  }
 
   try {
-    const imageRes = await fetch(body.url)
-    if (!imageRes.ok) return Response.json({ error: 'Could not load selected image' }, { status: 502 })
-    const buffer = await imageRes.arrayBuffer()
+    const base64 = body.dataUrl.split(',')[1]
+    const buffer = Buffer.from(base64, 'base64')
 
     const { url } = await put(`headshots/${session.user.id}/headshot.png`, buffer, {
       access: 'public',
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     })
 
     await setHeadshotUrl(session.user.id, url)
-    return Response.json({ ok: true, url })
+    return Response.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[headshot save-generated]', message)

@@ -1,5 +1,4 @@
 import { auth } from '@/auth'
-import { put } from '@vercel/blob'
 import OpenAI from 'openai'
 import { getFolioByOwnerId, checkAndConsumeImageGen } from '@/lib/folios'
 
@@ -13,6 +12,7 @@ export async function POST() {
     return Response.json({ error: 'Image generation is not configured' }, { status: 503 })
   }
   const openai = new OpenAI()
+
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
 
@@ -22,21 +22,22 @@ export async function POST() {
     return Response.json({ error: 'Upload a headshot first before generating' }, { status: 400 })
   }
 
-  // Check quota and deduct atomically (handles monthly reset)
   const { ok, remaining } = await checkAndConsumeImageGen(session.user.id)
   if (!ok) {
     return Response.json({ error: 'Monthly image generation quota exhausted', remaining: 0 }, { status: 429 })
   }
 
-  // Fetch the current headshot to use as the base image
-  const baseRes = await fetch(folio.headshot_url)
+  // Fetch base image from private Blob using server-side token
+  const baseRes = await fetch(folio.headshot_url, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  })
   if (!baseRes.ok) return Response.json({ error: 'Could not load current headshot' }, { status: 502 })
   const baseBuffer = await baseRes.arrayBuffer()
   const contentType = baseRes.headers.get('content-type') ?? 'image/jpeg'
   const ext = contentType.includes('png') ? 'png' : 'jpg'
   const baseFile = new File([baseBuffer], `headshot.${ext}`, { type: contentType })
 
-  // Generate NUM_OPTIONS in parallel
+  // Generate NUM_OPTIONS in parallel — return base64 data URLs directly (no temp Blob storage)
   const results = await Promise.allSettled(
     Array.from({ length: NUM_OPTIONS }, () =>
       openai.images.edit({
@@ -48,25 +49,18 @@ export async function POST() {
     )
   )
 
-  const urls: string[] = []
-  await Promise.all(
-    results.map(async (result, i) => {
-      if (result.status === 'rejected') return
-      const b64 = result.value.data?.[0]?.b64_json
-      if (!b64) return
-      const buffer = Buffer.from(b64, 'base64')
-      const { url } = await put(
-        `headshots/${session.user.id}/generated-${Date.now()}-${i}.png`,
-        buffer,
-        { access: 'public', contentType: 'image/png' }
-      )
-      urls.push(url)
+  const dataUrls: string[] = results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => {
+      const value = (r as PromiseFulfilledResult<{ data?: Array<{ b64_json?: string | null }> }>).value
+      const b64 = value.data?.[0]?.b64_json
+      return b64 ? `data:image/png;base64,${b64}` : null
     })
-  )
+    .filter((u): u is string => u !== null)
 
-  if (urls.length === 0) {
+  if (dataUrls.length === 0) {
     return Response.json({ error: 'Image generation failed — please try again' }, { status: 502 })
   }
 
-  return Response.json({ ok: true, urls, remaining })
+  return Response.json({ ok: true, urls: dataUrls, remaining })
 }
