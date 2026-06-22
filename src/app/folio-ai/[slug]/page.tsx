@@ -12,6 +12,7 @@ import {
 } from '@/lib/compositions'
 import { sql } from '@/lib/db'
 import { getFolioVideos } from '@/lib/videos'
+import Image from 'next/image'
 import ChatButton from '@/components/ChatButton'
 import SignOutButton from '@/components/SignOutButton'
 import RefreshFolioButton from '@/components/RefreshFolioButton'
@@ -360,6 +361,22 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
           <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-900/10 rounded-full blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-5xl px-6 py-20 md:py-28">
+          <div className="flex flex-col md:flex-row md:items-start md:gap-12">
+            {folio.headshot_visible && folio.headshot_url && (
+              <div className="shrink-0 mb-8 md:mb-0 md:order-last">
+                <div className="w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden border-2 border-zinc-700/60 shadow-xl">
+                  <Image
+                    src={folio.headshot_url}
+                    alt={folio.name}
+                    width={176}
+                    height={176}
+                    className="object-cover w-full h-full"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex-1">
           <p className="text-sm font-mono text-indigo-400 mb-4 tracking-widest uppercase">
             Portfolio
           </p>
@@ -390,6 +407,8 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             >
               Get in touch
             </a>
+          </div>
+            </div>
           </div>
         </div>
       </section>

@@ -10,11 +10,14 @@ type Folio = {
   email: string
   token_budget: number
   tokens_used: number
+  image_gen_quota: number
+  image_gen_used: number
 }
 
 export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }) {
   const [folios, setFolios] = useState(initial)
   const [editing, setEditing] = useState<Record<string, string>>({})
+  const [editingImgQuota, setEditingImgQuota] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
 
   async function saveBudget(folioId: string) {
@@ -32,6 +35,25 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
         prev.map((f) => (f.id === folioId ? { ...f, token_budget: value } : f)),
       )
       setEditing((e) => { const next = { ...e }; delete next[folioId]; return next })
+    }
+    setSaving((s) => ({ ...s, [folioId]: false }))
+  }
+
+  async function saveImgQuota(folioId: string) {
+    const raw = editingImgQuota[folioId]
+    const value = parseInt(raw, 10)
+    if (isNaN(value) || value < 0) return
+    setSaving((s) => ({ ...s, [folioId]: true }))
+    const res = await fetch('/api/folio-ai/admin/budget', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folioId, image_gen_quota: value }),
+    })
+    if (res.ok) {
+      setFolios((prev) =>
+        prev.map((f) => (f.id === folioId ? { ...f, image_gen_quota: value } : f)),
+      )
+      setEditingImgQuota((e) => { const next = { ...e }; delete next[folioId]; return next })
     }
     setSaving((s) => ({ ...s, [folioId]: false }))
   }
@@ -62,6 +84,7 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
             <th className="text-right px-4 py-3 text-xs text-zinc-500 font-medium">Used</th>
             <th className="text-right px-4 py-3 text-xs text-zinc-500 font-medium">Budget</th>
             <th className="text-right px-4 py-3 text-xs text-zinc-500 font-medium">%</th>
+            <th className="text-right px-4 py-3 text-xs text-zinc-500 font-medium">Img gen</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -129,6 +152,33 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
+                  {folio.id in editingImgQuota ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingImgQuota[folio.id]}
+                        onChange={(e) => setEditingImgQuota((prev) => ({ ...prev, [folio.id]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveImgQuota(folio.id)
+                          if (e.key === 'Escape') setEditingImgQuota((prev) => { const n = { ...prev }; delete n[folio.id]; return n })
+                        }}
+                        autoFocus
+                        className="w-14 text-right bg-zinc-800 border border-indigo-500 rounded px-2 py-0.5 text-xs text-white focus:outline-none"
+                      />
+                      <button onClick={() => saveImgQuota(folio.id)} disabled={isBusy} className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-40">Save</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingImgQuota((prev) => ({ ...prev, [folio.id]: String(folio.image_gen_quota) }))}
+                      className="text-zinc-500 hover:text-zinc-200 transition-colors tabular-nums text-xs"
+                      title="Click to edit image gen quota"
+                    >
+                      {folio.image_gen_used}/{folio.image_gen_quota}
+                    </button>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right">
                   <Link
                     href={`/folio-ai/${folio.slug}`}
                     className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
@@ -141,7 +191,7 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
           })}
           {folios.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-zinc-600">
+              <td colSpan={8} className="px-4 py-8 text-center text-zinc-600">
                 No folios yet
               </td>
             </tr>

@@ -9,9 +9,10 @@ import CompositionsTab from './CompositionsTab'
 import SharingTab from './SharingTab'
 import IntegrationsTab from './IntegrationsTab'
 import VideosTab from './VideosTab'
+import ProfileTab from './ProfileTab'
 import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile'
 
 type RestoredConversation = {
   id: string
@@ -69,9 +70,14 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Add YouTube videos to your folio — talks, demos, and walkthroughs.',
     detail: 'Paste any YouTube URL to pull in the title and thumbnail automatically. Added videos appear in a Talks & Videos section on your public folio page. Add a short description to give visitors context before they click.',
   },
+  profile: {
+    label: 'Profile',
+    short: 'Manage your headshot and control whether it appears on your folio.',
+    detail: 'Upload a photo, import your LinkedIn profile picture, or use AI to generate a professional headshot from your existing image. You get 3 AI generations per month. Toggle visibility to show or hide your headshot on your public folio page.',
+  },
 }
 
-const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile']
 const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
@@ -215,6 +221,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
         {active === 'videos' && folioSlug && (
           <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
         )}
+        {active === 'profile' && <ProfileTab />}
       </div>
     </div>
   )
