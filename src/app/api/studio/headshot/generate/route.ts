@@ -5,11 +5,14 @@ import { getFolioByOwnerId, checkAndConsumeImageGen } from '@/lib/folios'
 
 export const dynamic = 'force-dynamic'
 
-const openai = new OpenAI()
 const PROMPT = 'Professional headshot'
 const NUM_OPTIONS = 3
 
 export async function POST() {
+  if (!process.env.OPENAI_API_KEY) {
+    return Response.json({ error: 'Image generation is not configured' }, { status: 503 })
+  }
+  const openai = new OpenAI()
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
 
