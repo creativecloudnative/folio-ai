@@ -45,40 +45,40 @@ export default async function FolioDesignPage({
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-indigo-500" />
-          <span className="text-sm font-semibold tracking-wide text-zinc-200">
-            Design Studio
+      <header className="border-b border-zinc-800 px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+          <span className="text-sm font-semibold tracking-wide text-zinc-200 shrink-0">
+            Studio
           </span>
-          <span className="text-xs text-zinc-500 border border-zinc-700 rounded px-2 py-0.5">
+          <span className="text-xs text-zinc-500 border border-zinc-700 rounded px-2 py-0.5 truncate hidden xs:block sm:block">
             {folio.name}
           </span>
           {!isOwner && !isFullAccess && (
-            <span className="text-xs text-amber-400 border border-amber-700/50 bg-amber-900/20 rounded px-2 py-0.5">
+            <span className="text-xs text-amber-400 border border-amber-700/50 bg-amber-900/20 rounded px-2 py-0.5 shrink-0">
               read-only
             </span>
           )}
           {isFullAccess && (
-            <span className="text-xs text-emerald-400 border border-emerald-700/50 bg-emerald-900/20 rounded px-2 py-0.5">
+            <span className="text-xs text-emerald-400 border border-emerald-700/50 bg-emerald-900/20 rounded px-2 py-0.5 shrink-0">
               demo
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          {session?.user && <span>{session.user.name}</span>}
-          {session?.user && <span>·</span>}
-          <a href={`/folio-ai/${slug}`} className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
+        <div className="flex items-center gap-2 text-xs text-zinc-500 shrink-0">
+          <span className="hidden sm:inline">{session?.user?.name}</span>
+          <span className="hidden sm:inline">{session?.user && '·'}</span>
+          <a href={`/folio-ai/${slug}`} className="px-2.5 py-1.5 sm:px-3 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors whitespace-nowrap">
             View folio
           </a>
-          <span>·</span>
-          <Link href="/" className="hover:text-zinc-300 transition-colors">
+          <span className="hidden sm:inline">·</span>
+          <Link href="/" className="hidden sm:inline hover:text-zinc-300 transition-colors">
             Home
           </Link>
           {session?.user && (
             <>
-              <span>·</span>
-              <SignOutButton className="hover:text-zinc-300 transition-colors">
+              <span className="hidden sm:inline">·</span>
+              <SignOutButton className="hidden sm:inline hover:text-zinc-300 transition-colors">
                 Sign out
               </SignOutButton>
             </>
