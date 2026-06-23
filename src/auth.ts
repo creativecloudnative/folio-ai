@@ -20,44 +20,31 @@ const devProvider = process.env.NODE_ENV === 'development'
     })]
   : []
 
-// LinkedIn's OIDC discovery endpoint is unreliable — bypass it by switching
-// to type:"oauth" with explicit endpoints. The /v2/userinfo response shape
-// (sub, name, email, picture) is identical to the OIDC id_token claims.
-const linkedInProvider = {
-  ...LinkedIn({}),
-  type:   'oauth'   as const,
-  checks: ['state'] as ('state' | 'pkce' | 'none')[],
-  authorization: {
-    url: 'https://www.linkedin.com/oauth/v2/authorization',
-    params: { scope: 'openid profile email', response_type: 'code' },
-  },
-  token:    'https://www.linkedin.com/oauth/v2/accessToken',
-  userinfo: 'https://api.linkedin.com/v2/userinfo',
-  profile(profile: { sub: string; name: string; email: string; picture?: string }) {
-    return {
-      id:    profile.sub,
-      name:  profile.name,
-      email: profile.email,
-      image: profile.picture ?? null,
-    }
-  },
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    linkedInProvider,
+    LinkedIn({
+      authorization: {
+        params: {
+          scope: 'openid profile email',
+        },
+      },
+    }),
     ...devProvider,
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, account }) {
-      // LinkedIn OAuth — first sign-in: account + user are populated
-      if (account?.provider === 'linkedin' && user) {
-        token.sub    = user.id    as string
-        token.picture = user.image as string
-        if (user.name && user.email && !isAdminEmail(user.email)) {
+    async jwt({ token, user, account, profile }) {
+      // LinkedIn OAuth — profile contains the raw provider data
+      if (profile) {
+        token.sub = profile.sub as string
+        token.picture = profile.picture as string
+        if (profile.name && profile.email && !isAdminEmail(profile.email as string)) {
           try {
-            const folio = await upsertFolioOnLogin(user.id as string, user.name, user.email)
+            const folio = await upsertFolioOnLogin(
+              token.sub as string,
+              profile.name as string,
+              profile.email as string,
+            )
             token.folioSlug = folio.slug
           } catch (err) {
             console.error('[folio-ai jwt-folio-error]', err instanceof Error ? err.message : err)
@@ -81,9 +68,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     session({ session, token }) {
-      if (token.sub)       session.user.id         = token.sub
-      if (token.picture)   session.user.image      = token.picture   as string
-      if (token.folioSlug) session.user.folioSlug  = token.folioSlug as string
+      if (token.sub) session.user.id = token.sub
+      if (token.picture) session.user.image = token.picture as string
+      if (token.folioSlug) session.user.folioSlug = token.folioSlug as string
       return session
     },
   },
