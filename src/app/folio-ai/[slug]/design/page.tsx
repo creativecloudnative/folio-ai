@@ -92,6 +92,7 @@ export default async function FolioDesignPage({
           fullAccessSlug={isFullAccess ? slug : undefined}
           initialBalance={balance}
           folioSlug={slug}
+          folioName={folio.name}
           initialIsPublic={folio.is_public}
 
           initialInvites={invites}
