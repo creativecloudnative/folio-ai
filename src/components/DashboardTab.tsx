@@ -50,6 +50,7 @@ export default function DashboardTab({ demoSlug }: { demoSlug?: string }) {
     .slice(0, 5)
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="p-6 space-y-8 max-w-4xl">
       {/* Pipeline stats */}
       <section>
@@ -131,6 +132,7 @@ export default function DashboardTab({ demoSlug }: { demoSlug?: string }) {
           ))}
         </div>
       </section>
+    </div>
     </div>
   )
 }
