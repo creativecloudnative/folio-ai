@@ -327,9 +327,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             {hasStudioAccess && (
               <Link
                 href={`/folio-ai/${slug}/design`}
-                className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-[0_0_12px_rgba(99,102,241,0.5)] hover:shadow-[0_0_18px_rgba(99,102,241,0.7)] transition-all"
               >
-                View studio
+                ✦ Open Studio
               </Link>
             )}
             {!isOwner && viewerFolio && (
