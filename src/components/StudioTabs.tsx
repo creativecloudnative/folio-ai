@@ -29,7 +29,6 @@ type NavSection =
   | { type: 'group'; label: string; ownerOnly: boolean; items: NavItem[] }
 
 const NAV: NavSection[] = [
-  { type: 'standalone', tab: 'dashboard', label: 'Dashboard', ownerOnly: true },
   {
     type: 'group', label: 'Studio Agent', ownerOnly: false,
     items: [
@@ -48,6 +47,7 @@ const NAV: NavSection[] = [
   {
     type: 'group', label: 'Job Tracking', ownerOnly: true,
     items: [
+      { tab: 'dashboard',    label: 'Dashboard' },
       { tab: 'resumes',      label: 'Resumes' },
       { tab: 'applications', label: 'Applications' },
       { tab: 'evidence',     label: 'Evidence' },
