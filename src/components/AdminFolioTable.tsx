@@ -39,6 +39,21 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
     setSaving((s) => ({ ...s, [folioId]: false }))
   }
 
+  async function resetImgUsed(folioId: string) {
+    setSaving((s) => ({ ...s, [folioId]: true }))
+    const res = await fetch('/api/folio-ai/admin/budget', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folioId, reset_img_used: true }),
+    })
+    if (res.ok) {
+      setFolios((prev) =>
+        prev.map((f) => (f.id === folioId ? { ...f, image_gen_used: 0 } : f)),
+      )
+    }
+    setSaving((s) => ({ ...s, [folioId]: false }))
+  }
+
   async function saveImgQuota(folioId: string) {
     const raw = editingImgQuota[folioId]
     const value = parseInt(raw, 10)
@@ -169,13 +184,23 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
                       <button onClick={() => saveImgQuota(folio.id)} disabled={isBusy} className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-40">Save</button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setEditingImgQuota((prev) => ({ ...prev, [folio.id]: String(folio.image_gen_quota) }))}
-                      className="text-zinc-500 hover:text-zinc-200 transition-colors tabular-nums text-xs"
-                      title="Click to edit image gen quota"
-                    >
-                      {folio.image_gen_used}/{folio.image_gen_quota}
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditingImgQuota((prev) => ({ ...prev, [folio.id]: String(folio.image_gen_quota) }))}
+                        className="text-zinc-500 hover:text-zinc-200 transition-colors tabular-nums text-xs"
+                        title="Click to edit image gen quota"
+                      >
+                        {folio.image_gen_used}/{folio.image_gen_quota}
+                      </button>
+                      <button
+                        onClick={() => resetImgUsed(folio.id)}
+                        disabled={isBusy || folio.image_gen_used === 0}
+                        title="Reset image gen usage to 0"
+                        className="text-zinc-600 hover:text-amber-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs ml-1"
+                      >
+                        ↺
+                      </button>
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
