@@ -23,7 +23,12 @@ export default async function FolioDesignPage({
 
   if (!folio) notFound()
 
-  const isOwner      = !!session?.user && folio.owner_id === session.user.id
+  // Match by owner_id first; fall back to email to handle auth provider migrations
+  // (e.g. LinkedIn legacy ID → OIDC sub → OAuth UUID across Auth.js version changes)
+  const isOwner      = !!session?.user && (
+    folio.owner_id === session.user.id ||
+    (!!session.user.email && folio.email === session.user.email)
+  )
   // Full-access: visitor can see and use all owner-only tabs on a demo folio
   const isFullAccess = !isOwner && folio.studio_full_access && folio.studio_is_public
 
