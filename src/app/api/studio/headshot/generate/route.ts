@@ -65,8 +65,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await openai.images.edit({
       model: 'gpt-image-1',
-      // gpt-image-1 accepts a single File or an array; cast needed due to SDK type lag
-      image: images.length === 1 ? images[0] : (images as unknown as File),
+      image: images.length === 1 ? images[0] : images,
       prompt: STYLE_PROMPTS[style],
       size: '1024x1024',
     })
