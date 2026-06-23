@@ -6,15 +6,11 @@ type Props = {
   folioSlug: string
   initialIsPublic: boolean
   initialInvites: string[]
-  initialStudioIsPublic: boolean
 }
 
-export default function SharingTab({ folioSlug, initialIsPublic, initialInvites, initialStudioIsPublic }: Props) {
+export default function SharingTab({ folioSlug, initialIsPublic, initialInvites }: Props) {
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [invites, setInvites] = useState<string[]>(initialInvites)
-  const [studioIsPublic, setStudioIsPublic] = useState(initialStudioIsPublic)
-  const [studioVisibilityLoading, setStudioVisibilityLoading] = useState(false)
-  const [studioVisibilityError, setStudioVisibilityError] = useState<string | null>(null)
   const [visibilityLoading, setVisibilityLoading] = useState(false)
   const [visibilityError, setVisibilityError] = useState<string | null>(null)
   const [inviteInput, setInviteInput] = useState('')
@@ -84,24 +80,6 @@ export default function SharingTab({ folioSlug, initialIsPublic, initialInvites,
       // silently fail — the email stays in the list
     } finally {
       setRemovingEmail(null)
-    }
-  }
-
-  async function setStudioVisibility(next: boolean) {
-    setStudioVisibilityLoading(true)
-    setStudioVisibilityError(null)
-    try {
-      const res = await fetch(`/api/folio-ai/${folioSlug}/studio-visibility`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: next }),
-      })
-      if (!res.ok) throw new Error('Failed to update')
-      setStudioIsPublic(next)
-    } catch {
-      setStudioVisibilityError('Something went wrong. Try again.')
-    } finally {
-      setStudioVisibilityLoading(false)
     }
   }
 
@@ -208,48 +186,6 @@ export default function SharingTab({ folioSlug, initialIsPublic, initialInvites,
           )}
         </section>
       )}
-
-      {/* Studio visibility toggle */}
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <h2 className="text-sm font-semibold text-white mb-1">Studio access</h2>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              {studioIsPublic
-                ? 'Your studio is open — anyone with the link can view it in read-only mode.'
-                : 'Your studio is private — only you can access it.'}
-            </p>
-          </div>
-          <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium ${
-            studioIsPublic
-              ? 'border-emerald-700/60 bg-emerald-900/20 text-emerald-400'
-              : 'border-zinc-600 bg-zinc-800 text-zinc-400'
-          }`}>
-            {studioIsPublic ? 'Open' : 'Private'}
-          </span>
-        </div>
-
-        <div className="mt-5 flex items-center gap-3">
-          {studioIsPublic ? (
-            <button
-              onClick={() => setStudioVisibility(false)}
-              disabled={studioVisibilityLoading}
-              className="text-sm px-4 py-2 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white disabled:opacity-40 transition-colors"
-            >
-              {studioVisibilityLoading ? 'Saving…' : 'Make private'}
-            </button>
-          ) : (
-            <button
-              onClick={() => setStudioVisibility(true)}
-              disabled={studioVisibilityLoading}
-              className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition-colors"
-            >
-              {studioVisibilityLoading ? 'Saving…' : 'Open studio'}
-            </button>
-          )}
-          {studioVisibilityError && <p className="text-xs text-red-400">{studioVisibilityError}</p>}
-        </div>
-      </section>
 
     </div>
   )
