@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { nameToSlug } from '@/lib/folios'
-import config from '../../../folio.config'
 import { isAdminEmail } from '@/lib/admin'
 import SignInButton from '@/components/SignInButton'
 import SignOutButton from '@/components/SignOutButton'
@@ -59,7 +57,7 @@ export default async function FolioHomePage() {
   const session = await auth()
   const folioSlug = session?.user?.folioSlug
   const isAdmin = isAdminEmail(session?.user?.email)
-  const creatorSlug = nameToSlug(config.owner.name)
+  const demoSlug = 'alex-chen'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -68,7 +66,7 @@ export default async function FolioHomePage() {
         <span className="text-sm font-semibold tracking-wide text-white">folio-ai</span>
         <div className="flex items-center gap-3">
           <Link
-            href={`/folio-ai/${creatorSlug}`}
+            href={`/folio-ai/${demoSlug}`}
             className="text-xs text-zinc-400 hover:text-white transition-colors"
           >
             See example
@@ -155,7 +153,7 @@ export default async function FolioHomePage() {
               </SignInButton>
             ) : null}
             <Link
-              href={`/folio-ai/${creatorSlug}`}
+              href={`/folio-ai/${demoSlug}`}
               className="px-6 py-3 rounded-md border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white font-medium transition-colors"
             >
               See it live
@@ -245,15 +243,14 @@ export default async function FolioHomePage() {
             See the real thing
           </h2>
           <p className="text-zinc-400 max-w-lg mx-auto mb-8">
-            This site is built with folio-ai. Ask the assistant about the creator&apos;s work,
-            browse the architecture designs, or fork the repo and make it yours.
+            Explore a live demo folio — fully interactive Studio, job tracker, resume builder, and AI assistant. No login required.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
-              href={`/folio-ai/${creatorSlug}`}
+              href={`/folio-ai/${demoSlug}`}
               className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
             >
-              Visit creator&apos;s folio →
+              Explore demo folio →
             </Link>
             <a
               href="https://github.com/creativecloudnative/folio-ai"
@@ -279,7 +276,7 @@ export default async function FolioHomePage() {
           <div className="flex items-center gap-4">
             <Link href="/folio-ai/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
             <a href="https://github.com/creativecloudnative/folio-ai" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">GitHub</a>
-            <Link href={`/folio-ai/${creatorSlug}`} className="hover:text-zinc-400 transition-colors">Example folio</Link>
+            <Link href={`/folio-ai/${demoSlug}`} className="hover:text-zinc-400 transition-colors">Demo folio</Link>
           </div>
         </div>
       </footer>
