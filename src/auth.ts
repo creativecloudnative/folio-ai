@@ -59,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === 'linkedin' && user) {
         token.sub     = user.id    as string
         token.picture = user.image as string
-        if (user.name && user.email && !isAdminEmail(user.email)) {
+        if (user.name && user.email) {
           try {
             const folio = await upsertFolioOnLogin(user.id as string, user.name, user.email)
             token.folioSlug = folio.slug

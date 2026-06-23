@@ -81,21 +81,22 @@ export default async function FolioHomePage() {
           </a>
           {session?.user ? (
             <>
-              {isAdmin ? (
+              {isAdmin && (
                 <Link
                   href="/folio-ai/admin"
-                  className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+                  className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-white font-semibold transition-colors"
                 >
                   Admin
                 </Link>
-              ) : folioSlug ? (
+              )}
+              {folioSlug && (
                 <Link
                   href={`/folio-ai/${folioSlug}`}
                   className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
                 >
                   My folio
                 </Link>
-              ) : null}
+              )}
               <SignOutButton className="text-xs text-zinc-400 hover:text-white transition-colors">
                 Sign out
               </SignOutButton>
@@ -133,14 +134,7 @@ export default async function FolioHomePage() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {isAdmin ? (
-              <Link
-                href="/folio-ai/admin"
-                className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
-              >
-                Go to admin →
-              </Link>
-            ) : folioSlug ? (
+            {folioSlug ? (
               <Link
                 href={`/folio-ai/${folioSlug}`}
                 className="px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
