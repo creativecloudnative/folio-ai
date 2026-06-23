@@ -35,20 +35,23 @@ export default function ResumeTab() {
 
   const descRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => { loadResumes() }, [])
-
-  async function loadResumes() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/studio/resumes')
-      if (res.ok) {
-        const data = await res.json()
-        setResumes(data.resumes ?? [])
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/studio/resumes')
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          setResumes(data.resumes ?? [])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-    } finally {
-      setLoading(false)
     }
-  }
+    run()
+    return () => { cancelled = true }
+  }, [])
 
   async function handleFetchUrl() {
     if (!jobUrl.trim()) return
