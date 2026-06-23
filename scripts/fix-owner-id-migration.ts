@@ -95,16 +95,30 @@ async function run() {
   }
   if (oldResIds.length === 0) console.log('resumes: ok')
 
+  // ── conversations ──────────────────────────────────────────────────────────
+  const oldConvIds = orphaned(await sql`
+    SELECT DISTINCT owner_id FROM conversations
+    WHERE owner_id != ${newId} AND owner_id NOT IN (SELECT owner_id FROM folios)
+  ` as { owner_id: string }[])
+
+  for (const old of oldConvIds) {
+    const r = await sql`UPDATE conversations SET owner_id = ${newId} WHERE owner_id = ${old} RETURNING id`
+    console.log(`conversations: migrated ${r.length} rows from ${old}`)
+  }
+  if (oldConvIds.length === 0) console.log('conversations: ok')
+
   // ── Verify ─────────────────────────────────────────────────────────────────
   console.log('\nVerification:')
   const docs  = await sql`SELECT COUNT(*)::int AS n FROM documents       WHERE owner_id = ${newId}`
   const comps = await sql`SELECT COUNT(*)::int AS n FROM compositions     WHERE owner_id = ${newId}`
   const apps  = await sql`SELECT COUNT(*)::int AS n FROM job_applications WHERE owner_id = ${newId}`
   const res   = await sql`SELECT COUNT(*)::int AS n FROM resumes          WHERE owner_id = ${newId}`
+  const convs = await sql`SELECT COUNT(*)::int AS n FROM conversations    WHERE owner_id = ${newId}`
   console.log(`  documents:        ${docs[0].n}`)
   console.log(`  compositions:     ${comps[0].n}`)
   console.log(`  job_applications: ${apps[0].n}`)
   console.log(`  resumes:          ${res[0].n}`)
+  console.log(`  conversations:    ${convs[0].n}`)
 
   process.exit(0)
 }

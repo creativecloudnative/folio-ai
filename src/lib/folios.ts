@@ -105,6 +105,7 @@ export async function upsertFolioOnLogin(
     await sql`UPDATE job_applications SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
     await sql`UPDATE resumes          SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
     await sql`UPDATE connections      SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
+    await sql`UPDATE conversations    SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
     console.log('[folio-ai owner-id-migrated]', JSON.stringify({ email, old: oldOwnerId, new: ownerId }))
     return { ...(byEmail[0] as Folio), owner_id: ownerId }
   }
