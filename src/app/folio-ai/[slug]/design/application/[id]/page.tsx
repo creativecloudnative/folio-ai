@@ -16,14 +16,18 @@ export default async function ApplicationDetailPage({
   const [session, folio] = await Promise.all([auth(), getFolioBySlug(slug)])
 
   if (!folio) notFound()
-  if (!session?.user || session.user.id !== folio.owner_id) {
-    redirect(`/folio-ai/${slug}/design`)
-  }
+
+  const isOwner      = !!session?.user && session.user.id === folio.owner_id
+  const isFullAccess = !isOwner && folio.studio_full_access && folio.studio_is_public
+
+  if (!isOwner && !isFullAccess) redirect(`/folio-ai/${slug}/design`)
+
+  const ownerId = folio.owner_id
 
   const [application, events, resumes] = await Promise.all([
-    getApplication(id, session.user.id),
-    listEvents(id, session.user.id),
-    listResumes(session.user.id),
+    getApplication(id, ownerId),
+    listEvents(id, ownerId),
+    listResumes(ownerId),
   ])
 
   if (!application) notFound()
@@ -34,6 +38,7 @@ export default async function ApplicationDetailPage({
       initialEvents={events}
       resumes={resumes.map((r) => ({ id: r.id, title: r.title }))}
       folioSlug={slug}
+      demoSlug={isFullAccess ? slug : undefined}
     />
   )
 }

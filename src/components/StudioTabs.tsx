@@ -79,6 +79,7 @@ type TokenBalance = { budget: number; used: number; remaining: number }
 
 type Props = {
   isViewer?: boolean
+  fullAccessSlug?: string       // set for demo folios — enables owner-only tabs for visitors
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
@@ -142,6 +143,7 @@ const TAB_META: Record<Tab, { short: string; detail: string }> = {
 
 export default function StudioTabs({
   isViewer = false,
+  fullAccessSlug,
   initialBalance,
   folioSlug,
   initialIsPublic,
@@ -154,8 +156,9 @@ export default function StudioTabs({
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tabParam     = searchParams.get('tab') as Tab | null
-  const visibleTabs  = getAllTabs(isViewer)
-  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer ? 'history' : 'chat')
+  // Full-access visitors see all tabs; regular viewers see only the viewer subset
+  const visibleTabs  = getAllTabs(isViewer && !fullAccessSlug)
+  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer && !fullAccessSlug ? 'history' : 'chat')
 
   const [active,   setActive]   = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
@@ -212,7 +215,7 @@ export default function StudioTabs({
   }
 
   const meta = TAB_META[active]
-  const visibleNav = NAV.filter((s) => !isViewer || !s.ownerOnly)
+  const visibleNav = NAV.filter((s) => !isViewer || !!fullAccessSlug || !s.ownerOnly)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -287,25 +290,25 @@ export default function StudioTabs({
 
         {/* Tab content */}
         <div className="flex-1 overflow-hidden">
-          {active === 'dashboard' && <DashboardTab />}
+          {active === 'dashboard'    && <DashboardTab demoSlug={fullAccessSlug} />}
           {active === 'chat' && (
             <StudioChat
               restoredConversation={restoredConversation}
               onNewConversation={() => setRestoredConversation(null)}
               onRename={handleRename}
               initialBalance={initialBalance}
-              isViewer={isViewer}
+              isViewer={isViewer || !!fullAccessSlug}
             />
           )}
           {active === 'history' && (
             <ConversationHistory
               onRestore={handleRestore}
-              folioSlug={isViewer ? folioSlug : undefined}
-              isViewer={isViewer}
+              folioSlug={isViewer || fullAccessSlug ? folioSlug : undefined}
+              isViewer={isViewer || !!fullAccessSlug}
             />
           )}
-          {active === 'documents'    && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer} />}
-          {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer} />}
+          {active === 'documents'    && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer || !!fullAccessSlug} />}
+          {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer || !!fullAccessSlug} />}
           {active === 'sharing'      && folioSlug && (
             <SharingTab
               folioSlug={folioSlug}
@@ -319,12 +322,12 @@ export default function StudioTabs({
             <IntegrationsTab folioSlug={folioSlug} initialCalUsername={initialCalUsername ?? null} />
           )}
           {active === 'videos'       && folioSlug && (
-            <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
+            <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer || !!fullAccessSlug} />
           )}
           {active === 'profile'      && <ProfileTab />}
-          {active === 'resumes'      && <ResumeTab />}
-          {active === 'applications' && <ApplicationsTab />}
-          {active === 'evidence'     && <EvidenceTab />}
+          {active === 'resumes'      && <ResumeTab      demoSlug={fullAccessSlug} />}
+          {active === 'applications' && <ApplicationsTab demoSlug={fullAccessSlug} />}
+          {active === 'evidence'     && <EvidenceTab     demoSlug={fullAccessSlug} />}
         </div>
       </div>
     </div>

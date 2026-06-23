@@ -33,9 +33,10 @@ function sortApplications(list: JobApplication[], col: SortCol, dir: SortDir): J
   })
 }
 
-export default function ApplicationsTab() {
+export default function ApplicationsTab({ demoSlug }: { demoSlug?: string }) {
   const params = useParams<{ slug: string }>()
   const folioSlug = params?.slug ?? ''
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
 
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [resumes, setResumes] = useState<ResumeOption[]>([])
@@ -54,8 +55,8 @@ export default function ApplicationsTab() {
       setLoading(true)
       try {
         const [appsRes, resumesRes] = await Promise.all([
-          fetch('/api/studio/applications'),
-          fetch('/api/studio/resumes'),
+          fetch(`${apiBase}/applications`),
+          fetch(`${apiBase}/resumes`),
         ])
         if (appsRes.ok && !cancelled) {
           const data = await appsRes.json()
@@ -71,7 +72,7 @@ export default function ApplicationsTab() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [apiBase])
 
   function field(key: keyof typeof form, val: string) {
     setForm((f) => ({ ...f, [key]: val }))
@@ -85,7 +86,7 @@ export default function ApplicationsTab() {
     setSaving(true)
     setFormError('')
     try {
-      const res = await fetch('/api/studio/applications', {
+      const res = await fetch(`${apiBase}/applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,7 +111,7 @@ export default function ApplicationsTab() {
 
   async function handleDelete(id: string, company: string, role: string) {
     if (!confirm(`Delete application for ${role} at ${company}?`)) return
-    const res = await fetch(`/api/studio/applications/${id}`, { method: 'DELETE' })
+    const res = await fetch(`${apiBase}/applications/${id}`, { method: 'DELETE' })
     if (res.ok) setApplications((prev) => prev.filter((a) => a.id !== id))
   }
 

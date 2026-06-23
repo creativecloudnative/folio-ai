@@ -7,7 +7,8 @@ const ACTIVE_STATUSES: ApplicationStatus[] = ['applied', 'screening', 'interview
 
 type StatCard = { label: string; value: number | string; color: string; status?: ApplicationStatus }
 
-export default function DashboardTab() {
+export default function DashboardTab({ demoSlug }: { demoSlug?: string }) {
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -16,7 +17,7 @@ export default function DashboardTab() {
     async function run() {
       setLoading(true)
       try {
-        const res = await fetch('/api/studio/applications')
+        const res = await fetch(`${apiBase}/applications`)
         if (res.ok && !cancelled) {
           const data = await res.json()
           setApplications(data.applications ?? [])
@@ -27,7 +28,7 @@ export default function DashboardTab() {
     }
     run()
     return () => { cancelled = true }
-  }, [])
+  }, [apiBase])
 
   const byStatus = APPLICATION_STATUSES.reduce<Record<ApplicationStatus, number>>(
     (acc, s) => { acc[s] = 0; return acc },
