@@ -97,8 +97,15 @@ export async function upsertFolioOnLogin(
     FROM folios WHERE email = ${email} LIMIT 1
   `
   if (byEmail.length > 0) {
-    await sql`UPDATE folios SET owner_id = ${ownerId} WHERE email = ${email}`
-    console.log('[folio-ai owner-id-migrated]', JSON.stringify({ email, old: (byEmail[0] as Folio).owner_id, new: ownerId }))
+    const oldOwnerId = (byEmail[0] as Folio).owner_id
+    await sql`UPDATE folios           SET owner_id = ${ownerId} WHERE email      = ${email}`
+    await sql`UPDATE documents        SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
+    await sql`UPDATE composition_types SET owner_id = ${ownerId} WHERE owner_id  = ${oldOwnerId} ON CONFLICT (owner_id, slug) DO NOTHING`
+    await sql`UPDATE compositions     SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId} ON CONFLICT (owner_id, slug) DO NOTHING`
+    await sql`UPDATE job_applications SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
+    await sql`UPDATE resumes          SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
+    await sql`UPDATE connections      SET owner_id = ${ownerId} WHERE owner_id   = ${oldOwnerId}`
+    console.log('[folio-ai owner-id-migrated]', JSON.stringify({ email, old: oldOwnerId, new: ownerId }))
     return { ...(byEmail[0] as Folio), owner_id: ownerId }
   }
 
