@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import StudioChat from './StudioChat'
+import StudioHome from './StudioHome'
 import DocumentsTable from './DocumentsTable'
 import ConversationHistory, { type StoredConversation } from './ConversationHistory'
 import CompositionsTab from './CompositionsTab'
@@ -17,6 +18,7 @@ import EvidenceTab from './EvidenceTab'
 import type { FolioVideo } from '@/lib/videos'
 
 type Tab =
+  | 'home'
   | 'dashboard'
   | 'chat' | 'history'
   | 'documents' | 'compositions' | 'videos'
@@ -29,6 +31,7 @@ type NavSection =
   | { type: 'group'; label: string; ownerOnly: boolean; items: NavItem[] }
 
 const NAV: NavSection[] = [
+  { type: 'standalone', tab: 'home', label: 'Home', ownerOnly: false },
   {
     type: 'group', label: 'Studio Agent', ownerOnly: false,
     items: [
@@ -82,6 +85,7 @@ type Props = {
   fullAccessSlug?: string       // set for demo folios — enables owner-only tabs for visitors
   initialBalance?: TokenBalance | null
   folioSlug?: string
+  folioName?: string
   initialIsPublic?: boolean
 
   initialInvites?: string[]
@@ -91,6 +95,10 @@ type Props = {
 }
 
 const TAB_META: Record<Tab, { short: string; detail: string }> = {
+  home: {
+    short: 'Overview of everything you can do in the studio.',
+    detail: 'A quick-start guide to the studio — feature cards for each capability area with direct links to jump in. This is the default landing page when you open the studio.',
+  },
   dashboard: {
     short: 'Your job search and portfolio activity at a glance.',
     detail: 'A summary of your active application pipeline, recently updated applications, and placeholders for upcoming features: agent-triggered alerts and Cal.com calendar events.',
@@ -146,6 +154,7 @@ export default function StudioTabs({
   fullAccessSlug,
   initialBalance,
   folioSlug,
+  folioName,
   initialIsPublic,
 
   initialInvites,
@@ -158,7 +167,7 @@ export default function StudioTabs({
   const tabParam     = searchParams.get('tab') as Tab | null
   // Full-access visitors see all tabs; regular viewers see only the viewer subset
   const visibleTabs  = getAllTabs(isViewer && !fullAccessSlug)
-  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer && !fullAccessSlug ? 'history' : 'dashboard')
+  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer && !fullAccessSlug ? 'history' : 'home')
 
   const [active,   setActive]   = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
@@ -313,6 +322,7 @@ export default function StudioTabs({
 
         {/* Tab content */}
         <div className="flex-1 overflow-hidden">
+          {active === 'home'         && <StudioHome switchTab={switchTab} isViewer={isViewer || !!fullAccessSlug} folioName={folioName} />}
           {active === 'dashboard'    && <DashboardTab demoSlug={fullAccessSlug} />}
           {active === 'chat' && (
             <StudioChat
