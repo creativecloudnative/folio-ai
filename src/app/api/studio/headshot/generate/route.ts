@@ -11,6 +11,19 @@ const STYLE_PROMPTS: Record<string, string> = {
   illustrated:  'Illustrated avatar portrait, clean vector art style, professional',
 }
 
+async function fetchBlobAsFile(url: string, name: string): Promise<File | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buffer = await res.arrayBuffer()
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
+    return new File([buffer], `${name}.${ext}`, { type: contentType })
+  } catch {
+    return null
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     return Response.json({ error: 'Image generation is not configured' }, { status: 503 })
@@ -21,10 +34,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
 
   let style = 'professional'
+  let referenceUrls: string[] = []
   try {
     const body = await req.json()
     if (body.style && STYLE_PROMPTS[body.style]) style = body.style
-  } catch { /* default to professional */ }
+    if (Array.isArray(body.referenceUrls)) referenceUrls = body.referenceUrls.slice(0, 4)
+  } catch { /* use defaults */ }
 
   const folio = await getFolioByOwnerId(session.user.id)
   if (!folio) return Response.json({ error: 'not_found' }, { status: 404 })
@@ -37,17 +52,21 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Monthly image generation quota exhausted', remaining: 0 }, { status: 429 })
   }
 
-  const baseRes = await fetch(folio.headshot_url)
-  if (!baseRes.ok) return Response.json({ error: 'Could not load current headshot' }, { status: 502 })
-  const baseBuffer = await baseRes.arrayBuffer()
-  const contentType = baseRes.headers.get('content-type') ?? 'image/jpeg'
-  const ext = contentType.includes('png') ? 'png' : 'jpg'
-  const baseFile = new File([baseBuffer], `headshot.${ext}`, { type: contentType })
+  const baseFile = await fetchBlobAsFile(folio.headshot_url, 'headshot')
+  if (!baseFile) return Response.json({ error: 'Could not load current headshot' }, { status: 502 })
+
+  // Fetch reference images in parallel; silently skip any that fail to load
+  const refFiles = (
+    await Promise.all(referenceUrls.map((url, i) => fetchBlobAsFile(url, `ref-${i}`)))
+  ).filter((f): f is File => f !== null)
+
+  const images: File[] = [baseFile, ...refFiles]
 
   try {
     const result = await openai.images.edit({
       model: 'gpt-image-1',
-      image: baseFile,
+      // gpt-image-1 accepts a single File or an array; cast needed due to SDK type lag
+      image: images.length === 1 ? images[0] : (images as unknown as File),
       prompt: STYLE_PROMPTS[style],
       size: '1024x1024',
     })

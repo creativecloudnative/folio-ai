@@ -10,6 +10,8 @@ type ImageGenBalance = {
   reset_at: string
 }
 
+type RefPhoto = { url: string; pathname: string }
+
 type Style = 'professional' | 'bw' | 'illustrated'
 
 const STYLES: { value: Style; label: string; description: string }[] = [
@@ -19,6 +21,7 @@ const STYLES: { value: Style; label: string; description: string }[] = [
 ]
 
 const OWNER_IMAGE_URL = '/api/studio/headshot/image'
+const MAX_REFS = 4
 
 export default function ProfileTab() {
   const [hasHeadshot, setHasHeadshot]   = useState(false)
@@ -28,6 +31,11 @@ export default function ProfileTab() {
   const [loading, setLoading]           = useState(true)
   const [selectedStyle, setSelectedStyle] = useState<Style>('professional')
 
+  const [refs, setRefs]                 = useState<RefPhoto[]>([])
+  const [refsLoading, setRefsLoading]   = useState(true)
+  const [addingRef, setAddingRef]       = useState(false)
+  const [removingRef, setRemovingRef]   = useState<string | null>(null)
+
   const [uploadBusy, setUploadBusy]     = useState(false)
   const [importBusy, setImportBusy]     = useState(false)
   const [generating, setGenerating]     = useState(false)
@@ -35,7 +43,8 @@ export default function ProfileTab() {
   const [savingOption, setSavingOption] = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileRef    = useRef<HTMLInputElement>(null)
+  const refFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/studio/headshot')
@@ -46,6 +55,11 @@ export default function ProfileTab() {
         setBalance(data.imageGenBalance ?? null)
       })
       .finally(() => setLoading(false))
+
+    fetch('/api/studio/headshot/references')
+      .then((r) => r.json())
+      .then((data) => setRefs(data.refs ?? []))
+      .finally(() => setRefsLoading(false))
   }, [])
 
   async function toggleVisible() {
@@ -93,6 +107,37 @@ export default function ProfileTab() {
     setImportBusy(false)
   }
 
+  async function handleAddRef(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setAddingRef(true)
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/api/studio/headshot/references', { method: 'POST', body: form })
+    const data = await res.json()
+    if (res.ok) {
+      setRefs((prev) => [...prev, { url: data.url, pathname: data.pathname }])
+    } else {
+      setError(data.error ?? 'Upload failed')
+    }
+    setAddingRef(false)
+    if (refFileRef.current) refFileRef.current.value = ''
+  }
+
+  async function handleRemoveRef(ref: RefPhoto) {
+    setRemovingRef(ref.url)
+    const res = await fetch('/api/studio/headshot/references', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: ref.url }),
+    })
+    if (res.ok) {
+      setRefs((prev) => prev.filter((r) => r.url !== ref.url))
+    }
+    setRemovingRef(null)
+  }
+
   async function handleGenerate() {
     setError(null)
     setGenerating(true)
@@ -100,7 +145,7 @@ export default function ProfileTab() {
     const res = await fetch('/api/studio/headshot/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ style: selectedStyle }),
+      body: JSON.stringify({ style: selectedStyle, referenceUrls: refs.map((r) => r.url) }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -201,10 +246,53 @@ export default function ProfileTab() {
             {importBusy ? 'Importing…' : 'in Import from LinkedIn'}
           </button>
         </div>
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleUpload} />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} />
         <p className="text-[11px] text-zinc-600">
-          JPEG, PNG, WebP, or GIF — max 5 MB. Images are moderated before upload.
+          JPEG, PNG, or WebP — max 5 MB. Images are moderated before upload.
         </p>
+      </section>
+
+      {/* Reference photos */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-zinc-300">Reference photos</h3>
+          <span className="text-[11px] text-zinc-600">{refs.length}/{MAX_REFS}</span>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Additional photos help the AI capture your likeness more accurately during generation.
+        </p>
+
+        {refsLoading ? (
+          <p className="text-[11px] text-zinc-600">Loading…</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {refs.map((ref) => (
+              <div key={ref.url} className="relative w-16 h-16 rounded-lg overflow-hidden border border-zinc-700 group shrink-0">
+                <Image src={ref.url} alt="Reference photo" fill className="object-cover" unoptimized />
+                <button
+                  onClick={() => handleRemoveRef(ref)}
+                  disabled={removingRef === ref.url}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-lg leading-none"
+                  title="Remove"
+                >
+                  {removingRef === ref.url ? '…' : '×'}
+                </button>
+              </div>
+            ))}
+            {refs.length < MAX_REFS && (
+              <button
+                onClick={() => refFileRef.current?.click()}
+                disabled={addingRef}
+                className="w-16 h-16 rounded-lg border border-dashed border-zinc-700 hover:border-zinc-500 text-zinc-600 hover:text-zinc-400 transition-colors flex items-center justify-center text-2xl disabled:opacity-40 shrink-0"
+                title="Add reference photo"
+              >
+                {addingRef ? '…' : '+'}
+              </button>
+            )}
+          </div>
+        )}
+
+        <input ref={refFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAddRef} />
       </section>
 
       {/* AI Generation */}
@@ -219,7 +307,7 @@ export default function ProfileTab() {
           )}
         </div>
         <p className="text-xs text-zinc-500">
-          Uses your current headshot as a base. Each generation costs 1 credit.
+          Uses your headshot{refs.length > 0 ? ` and ${refs.length} reference photo${refs.length > 1 ? 's' : ''}` : ''} as input. Each generation costs 1 credit.
         </p>
 
         {/* Style selector */}
