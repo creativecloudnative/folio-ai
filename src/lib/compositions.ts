@@ -360,18 +360,6 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
 
     let pos = 0
 
-    const bio = await sql`
-      SELECT source FROM documents
-      WHERE owner_id = ${ownerId} AND type = 'bio'
-      ORDER BY created_at DESC LIMIT 1
-    `
-    if (bio.length > 0) {
-      await sql`
-        INSERT INTO composition_items (composition_id, document_source, section_label, position)
-        VALUES (${folioId}, ${bio[0].source as string}, 'Intro', ${pos++})
-      `
-    }
-
     // Add existing non-folio compositions as refs, sorted by type position then title
     const comps = await sql`
       SELECT c.id, c.title, ct.name AS type_name, ct.position AS type_position

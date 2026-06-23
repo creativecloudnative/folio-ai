@@ -27,7 +27,11 @@ type FolioCard = {
   excerpt: string
   viewer_href: string
   published: boolean  // false = draft, shown to owner only
+  display: 'prose' | 'card'
 }
+
+// Document types that render as readable prose blocks rather than clickable cards
+const PROSE_TYPES = new Set(['greeting', 'bio'])
 
 // One composition (or direct document) within a section
 type FolioSubSection = {
@@ -42,6 +46,7 @@ type FolioSection = {
 }
 
 const DOC_TYPE_LABELS: Record<string, string> = {
+  greeting: 'Greeting',
   bio: 'Bio',
   resume: 'Resume',
   'case-study': 'Case Study',
@@ -64,6 +69,24 @@ function extractExcerpt(content: string, maxLen = 220): string {
   return ''
 }
 
+// For prose display: concatenate paragraphs up to maxLen rather than just the first line
+function extractProseBlock(content: string, maxLen = 800): string {
+  const parts: string[] = []
+  let total = 0
+  for (const line of content.split('\n')) {
+    const t = line.trim()
+    if (!t || t.startsWith('#') || t.startsWith('---') || t.startsWith('```')) continue
+    if (total + t.length > maxLen) {
+      if (parts.length === 0) parts.push(t.slice(0, maxLen - 3) + '…')
+      else parts[parts.length - 1] += '…'
+      break
+    }
+    parts.push(t)
+    total += t.length
+  }
+  return parts.join(' ')
+}
+
 function labelToAnchor(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'section'
 }
@@ -78,10 +101,12 @@ function compositionViewerHref(folioSlug: string, comp: Pick<Composition, 'type'
 
 async function fetchIntroExcerpt(ownerId: string): Promise<string> {
   try {
+    // Prefer a dedicated greeting document; fall back to bio
     const rows = await sql`
       SELECT content FROM documents
-      WHERE owner_id = ${ownerId} AND type = 'bio'
-      ORDER BY created_at DESC LIMIT 1
+      WHERE owner_id = ${ownerId} AND type IN ('greeting', 'bio')
+      ORDER BY CASE type WHEN 'greeting' THEN 0 ELSE 1 END, created_at DESC
+      LIMIT 1
     `
     return rows[0]?.content ? extractExcerpt(rows[0].content as string, 320) : ''
   } catch { return '' }
@@ -166,6 +191,7 @@ async function buildSections(
               excerpt: doc.content ? extractExcerpt(doc.content as string) : '',
               viewer_href: compositionViewerHref(folioSlug, comp),
               published: comp.published,
+              display: 'card' as const,
             }
           })
         )).filter((c): c is FolioCard => c !== null)
@@ -188,6 +214,7 @@ async function buildSections(
             excerpt,
             viewer_href: compositionViewerHref(folioSlug, comp),
             published: comp.published,
+            display: 'card',
           })
         }
 
@@ -202,8 +229,10 @@ async function buildSections(
         `
         const doc = rows[0]
         if (!doc) return null
+        const docType = doc.type as string
+        const display: 'prose' | 'card' = PROSE_TYPES.has(docType) ? 'prose' : 'card'
         const sectionLabel = item.section_label?.trim() || 'Documents'
-        const typeLabel = DOC_TYPE_LABELS[doc.type as string] ?? (doc.type as string) ?? 'Document'
+        const typeLabel = DOC_TYPE_LABELS[docType] ?? docType ?? 'Document'
         return {
           sectionLabel,
           subsection: {
@@ -211,9 +240,14 @@ async function buildSections(
             cards: [{
               id: item.id,
               title: (doc.title as string) || 'Document',
-              excerpt: doc.content ? extractExcerpt(doc.content as string) : '',
+              excerpt: doc.content
+                ? display === 'prose'
+                  ? extractProseBlock(doc.content as string)
+                  : extractExcerpt(doc.content as string)
+                : '',
               viewer_href: `/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(item.document_source!)}`,
               published: true,
+              display,
             }],
           },
         }
@@ -276,6 +310,7 @@ async function buildFallbackSections(
           excerpt: doc.content ? extractExcerpt(doc.content as string) : '',
           viewer_href: compositionViewerHref(folioSlug, comp),
           published: comp.published,
+          display: 'card' as const,
         }
       })
     )).filter((c): c is FolioCard => c !== null)
@@ -297,6 +332,7 @@ async function buildFallbackSections(
         excerpt,
         viewer_href: compositionViewerHref(folioSlug, comp),
         published: comp.published,
+        display: 'card',
       })
     }
 
@@ -488,41 +524,57 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             <h2 className="text-3xl font-bold text-white mb-12">{section.label}</h2>
 
             <div className="space-y-14">
-              {section.subsections.map((sub, subIdx) => (
-                <div key={subIdx}>
-                  <h3 className="text-lg font-semibold text-zinc-200 mb-6 pb-2 border-b border-zinc-800/80">
-                    {sub.title}
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {sub.cards.map((card) => card.published ? (
-                      <Link
-                        key={card.id}
-                        href={card.viewer_href}
-                        className="group rounded-xl border border-zinc-800 bg-zinc-900/40 hover:border-indigo-700 p-6 flex flex-col gap-3 transition-colors"
-                      >
-                        <h4 className="text-base font-semibold text-white leading-snug">{card.title}</h4>
-                        {card.excerpt && (
-                          <p className="text-sm text-zinc-400 leading-relaxed flex-1">{card.excerpt}</p>
-                        )}
-                        <span className="text-xs text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                          Read more →
-                        </span>
-                      </Link>
-                    ) : (
-                      <div
-                        key={card.id}
-                        className="rounded-xl border border-zinc-800/50 border-dashed bg-zinc-900/20 p-6 flex flex-col gap-3 opacity-60"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-amber-700/50 bg-amber-900/30 text-amber-400">draft</span>
-                        </div>
-                        <h4 className="text-base font-semibold text-white leading-snug">{card.title}</h4>
-                        <p className="text-xs text-zinc-600">Publish this composition to make it visible.</p>
+              {section.subsections.map((sub, subIdx) => {
+                const isProse = sub.cards.some((c) => c.display === 'prose')
+                return (
+                  <div key={subIdx}>
+                    <h3 className="text-lg font-semibold text-zinc-200 mb-6 pb-2 border-b border-zinc-800/80">
+                      {sub.title}
+                    </h3>
+
+                    {isProse ? (
+                      // Prose rendering — full-width readable text, no card chrome
+                      <div className="space-y-5">
+                        {sub.cards.map((card) => (
+                          <div key={card.id}>
+                            <p className="text-base text-zinc-300 leading-relaxed">{card.excerpt}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      // Card rendering — clickable grid tiles
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {sub.cards.map((card) => card.published ? (
+                          <Link
+                            key={card.id}
+                            href={card.viewer_href}
+                            className="group rounded-xl border border-zinc-800 bg-zinc-900/40 hover:border-indigo-700 p-6 flex flex-col gap-3 transition-colors"
+                          >
+                            <h4 className="text-base font-semibold text-white leading-snug">{card.title}</h4>
+                            {card.excerpt && (
+                              <p className="text-sm text-zinc-400 leading-relaxed flex-1">{card.excerpt}</p>
+                            )}
+                            <span className="text-xs text-indigo-400 group-hover:text-indigo-300 transition-colors">
+                              Read more →
+                            </span>
+                          </Link>
+                        ) : (
+                          <div
+                            key={card.id}
+                            className="rounded-xl border border-zinc-800/50 border-dashed bg-zinc-900/20 p-6 flex flex-col gap-3 opacity-60"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-amber-700/50 bg-amber-900/30 text-amber-400">draft</span>
+                            </div>
+                            <h4 className="text-base font-semibold text-white leading-snug">{card.title}</h4>
+                            <p className="text-xs text-zinc-600">Publish this composition to make it visible.</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </section>
