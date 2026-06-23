@@ -59,6 +59,7 @@ type Props = {
 }
 
 export default function ResumeEditor({ resume: initial, folioSlug, demoSlug }: Props) {
+  const isViewer = !!demoSlug
   const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const router = useRouter()
   const [content, setContent]     = useState(initial.content)
@@ -127,10 +128,11 @@ export default function ResumeEditor({ resume: initial, folioSlug, demoSlug }: P
           </button>
           <span className="text-zinc-700 text-xs">|</span>
 
-          {/* Editable title */}
+          {/* Title */}
           <input
             value={title}
-            onChange={(e) => { setTitle(e.target.value); setDirty(true); setSaved(false) }}
+            onChange={(e) => { if (!isViewer) { setTitle(e.target.value); setDirty(true); setSaved(false) } }}
+            readOnly={isViewer}
             className="flex-1 min-w-0 text-sm font-medium bg-transparent text-zinc-200 focus:outline-none focus:text-white placeholder:text-zinc-600"
             placeholder="Resume title"
           />
@@ -169,13 +171,15 @@ export default function ResumeEditor({ resume: initial, folioSlug, demoSlug }: P
               {showJob ? 'Hide JD' : 'Show JD'}
             </button>
 
-            <button
-              onClick={save}
-              disabled={saving || !dirty}
-              className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium transition-colors"
-            >
-              {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
-            </button>
+            {!isViewer && (
+              <button
+                onClick={save}
+                disabled={saving || !dirty}
+                className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              >
+                {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
+              </button>
+            )}
 
             <button
               onClick={handlePrint}
@@ -205,7 +209,8 @@ export default function ResumeEditor({ resume: initial, folioSlug, demoSlug }: P
               </div>
               <textarea
                 value={content}
-                onChange={(e) => handleChange(e.target.value)}
+                onChange={(e) => { if (!isViewer) handleChange(e.target.value) }}
+                readOnly={isViewer}
                 className="flex-1 font-mono text-xs text-zinc-300 bg-transparent px-4 py-3 resize-none focus:outline-none leading-relaxed"
                 spellCheck={false}
               />
