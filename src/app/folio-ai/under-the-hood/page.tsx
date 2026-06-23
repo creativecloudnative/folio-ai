@@ -197,6 +197,9 @@ The studio agent has a different tool set from the visitor agent, focused on con
 | \`get_document\` / \`list_content\` | Retrieves specific documents or lists all content by type |
 | \`list_compositions\` / \`publish_composition\` | Manages the composition system (see below) |
 | \`save_diagram\` | Stores a Mermaid diagram with metadata for use in case studies |
+| \`list_job_applications\` / \`get_job_application\` | Lists all tracked applications or retrieves one with its full timeline history |
+| \`add_application_note\` | Creates a timeline entry on an application — note, phone screen, technical interview, onsite, offer, or follow-up. The agent can do this on demand from conversation |
+| \`update_application_status\` | Advances an application through the pipeline: applied → screening → interviewing → offer → accepted / rejected / withdrawn |
 
 ### Compositions System
 
@@ -212,6 +215,27 @@ flowchart TD
 \`\`\`
 
 This makes it easy to build different views of the same underlying content: a short-form resume composition and a detailed architecture write-up can draw from the same source documents.
+
+### Job Tracking
+
+The studio includes a full job search management system that the agent actively participates in — not just a tracker you fill in manually.
+
+**Applications** capture the role, company, job posting URL, status, and which resume was used to apply.
+
+**Timeline events** record what happened at each stage. Event types include: note, phone screen, technical interview, behavioral interview, onsite, offer, and follow-up. The studio agent can create timeline entries directly from conversation — "log a technical interview for my Stripe application today" will call \`add_application_note\` and persist the entry without leaving the chat.
+
+**Evidence** attaches supporting artifacts to an application — take-home submissions, written responses, challenge code. Stored and linked by application so everything for a given role stays together.
+
+**Resumes** are AI-generated against a specific job description, using the owner's portfolio documents as source material. The system retrieves relevant experience chunks from the vector store and synthesises a tailored resume in Markdown. Four templates are available (Modern, Classic, Compact, Minimal) with a split-pane editor and print-to-PDF export.
+
+\`\`\`mermaid
+flowchart LR
+  A[Job description] --> B[Fetch and parse JD]
+  B --> C[search_portfolio retrieve owner context]
+  C --> D[Claude synthesize tailored resume]
+  D --> E[Markdown resume saved to DB]
+  E --> F[Resume Editor split-pane and print/PDF]
+\`\`\`
 
 ### Visitor Memory
 
@@ -288,7 +312,7 @@ export default function UnderTheHoodPage() {
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed">
             How folio-ai works — the ReAct agent, RAG pipeline, streaming architecture,
-            and design studio. Written for engineers who want to understand or fork the system.
+            design studio, and job tracking system. Written for engineers who want to understand or fork the system.
           </p>
         </div>
 
