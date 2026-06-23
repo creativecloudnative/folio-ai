@@ -158,7 +158,7 @@ export default function StudioTabs({
   const tabParam     = searchParams.get('tab') as Tab | null
   // Full-access visitors see all tabs; regular viewers see only the viewer subset
   const visibleTabs  = getAllTabs(isViewer && !fullAccessSlug)
-  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer && !fullAccessSlug ? 'history' : 'chat')
+  const initialTab   = tabParam && visibleTabs.includes(tabParam) ? tabParam : (isViewer && !fullAccessSlug ? 'history' : 'dashboard')
 
   const [active,   setActive]   = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
