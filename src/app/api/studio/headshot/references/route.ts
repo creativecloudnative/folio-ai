@@ -6,7 +6,7 @@ import { moderateImage } from '@/lib/image-moderation'
 export const dynamic = 'force-dynamic'
 
 const MAX_REFS = 4
-const MAX_BYTES = 5 * 1024 * 1024
+const MAX_BYTES = 4 * 1024 * 1024 // stay under Next.js's 4 MB route handler body limit
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 function refPrefix(userId: string) {

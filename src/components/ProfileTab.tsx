@@ -25,6 +25,13 @@ const STYLES: { value: Style; label: string; description: string }[] = [
 const OWNER_IMAGE_URL = '/api/studio/headshot/image'
 const MAX_REFS = 4
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function safeJson(res: Response): Promise<any> {
+  try { return await res.json() } catch {
+    return { error: res.status === 413 ? 'Image too large — please use a file under 4 MB' : `Request failed (${res.status})` }
+  }
+}
+
 export default function ProfileTab() {
   const [hasHeadshot, setHasHeadshot]   = useState(false)
   const [imageBust, setImageBust]       = useState(0)
@@ -97,7 +104,7 @@ export default function ProfileTab() {
     const form = new FormData()
     form.append('file', file)
     const res = await fetch('/api/studio/headshot/upload', { method: 'POST', body: form })
-    const data = await res.json()
+    const data = await safeJson(res)
     if (res.ok) {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
@@ -114,7 +121,7 @@ export default function ProfileTab() {
     setError(null)
     setImportBusy(true)
     const res = await fetch('/api/studio/headshot/import-linkedin', { method: 'POST' })
-    const data = await res.json()
+    const data = await safeJson(res)
     if (res.ok) {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
@@ -161,7 +168,7 @@ export default function ProfileTab() {
     const form = new FormData()
     form.append('file', file)
     const res = await fetch('/api/studio/headshot/references', { method: 'POST', body: form })
-    const data = await res.json()
+    const data = await safeJson(res)
     if (res.ok) {
       setRefs((prev) => [...prev, { url: data.url, pathname: data.pathname }])
     } else {
