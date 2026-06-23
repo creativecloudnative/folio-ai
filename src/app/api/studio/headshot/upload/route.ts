@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { put } from '@vercel/blob'
 import { setHeadshotUrl } from '@/lib/folios'
+import { moderateImage } from '@/lib/image-moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,10 +12,6 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json({ error: 'Image storage is not configured on this server' }, { status: 503 })
-  }
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -27,8 +24,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const buffer = await file.arrayBuffer()
+
+    // Moderate before uploading — nothing reaches Blob if flagged
+    const moderation = await moderateImage(buffer, file.type)
+    if (!moderation.safe) {
+      return Response.json({ error: moderation.reason }, { status: 422 })
+    }
+
     const ext = file.type.split('/')[1]
-    const { url } = await put(`headshots/${session.user.id}/headshot.${ext}`, file, {
+    const { url } = await put(`headshots/${session.user.id}/headshot.${ext}`, buffer, {
       access: 'public',
       contentType: file.type,
     })
