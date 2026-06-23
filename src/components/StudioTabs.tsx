@@ -218,10 +218,33 @@ export default function StudioTabs({
   const visibleNav = NAV.filter((s) => !isViewer || !!fullAccessSlug || !s.ownerOnly)
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
-      {/* Sidebar */}
-      <aside className="w-52 shrink-0 border-r border-zinc-800 bg-zinc-900/40 flex flex-col overflow-y-auto scrollbar-none print:hidden" style={{ scrollbarWidth: 'none' }}>
+      {/* Mobile nav: compact select */}
+      <div className="sm:hidden shrink-0 border-b border-zinc-800 bg-zinc-900/40 px-3 py-2 print:hidden">
+        <select
+          value={active}
+          onChange={(e) => switchTab(e.target.value as Tab)}
+          className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+        >
+          {visibleNav.map((section) =>
+            section.type === 'standalone' ? (
+              <option key={section.tab} value={section.tab}>{section.label}</option>
+            ) : (
+              <optgroup key={section.label} label={section.label}>
+                {section.items.map((item) => (
+                  <option key={item.tab} value={item.tab}>{item.label}</option>
+                ))}
+              </optgroup>
+            )
+          )}
+        </select>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+
+      {/* Desktop sidebar */}
+      <aside className="hidden sm:flex w-52 shrink-0 border-r border-zinc-800 bg-zinc-900/40 flex-col overflow-y-auto scrollbar-none print:hidden" style={{ scrollbarWidth: 'none' }}>
         <nav className="py-3">
           {visibleNav.map((section, si) => (
             <div key={si} className={si > 0 ? 'mt-1' : undefined}>
@@ -329,6 +352,7 @@ export default function StudioTabs({
           {active === 'applications' && <ApplicationsTab demoSlug={fullAccessSlug} isViewer={!!fullAccessSlug} />}
           {active === 'evidence'     && <EvidenceTab     demoSlug={fullAccessSlug} />}
         </div>
+      </div>
       </div>
     </div>
   )
