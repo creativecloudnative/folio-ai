@@ -85,7 +85,7 @@ type Props = {
   initialIsPublic?: boolean
   initialStudioIsPublic?: boolean
   initialInvites?: string[]
-  initialStudioInvites?: string[]
+
   initialCalUsername?: string | null
   initialVideos?: FolioVideo[]
 }
@@ -149,7 +149,7 @@ export default function StudioTabs({
   initialIsPublic,
   initialStudioIsPublic,
   initialInvites,
-  initialStudioInvites,
+
   initialCalUsername,
   initialVideos,
 }: Props) {
@@ -315,7 +315,7 @@ export default function StudioTabs({
               initialIsPublic={initialIsPublic ?? false}
               initialInvites={initialInvites ?? []}
               initialStudioIsPublic={initialStudioIsPublic ?? false}
-              initialStudioInvites={initialStudioInvites ?? []}
+
             />
           )}
           {active === 'integrations' && folioSlug && (

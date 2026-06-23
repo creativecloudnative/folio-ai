@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { getFolioBySlug, getTokenBalance } from '@/lib/folios'
 import { getFolioInvites } from '@/lib/invites'
-import { getStudioInvites, isStudioInvited } from '@/lib/studio-invites'
+
 import { getFolioVideos } from '@/lib/videos'
 import StudioTabs from '@/components/StudioTabs'
 import SignOutButton from '@/components/SignOutButton'
@@ -33,17 +33,13 @@ export default async function FolioDesignPage({
   const isFullAccess = !isOwner && folio.studio_full_access && folio.studio_is_public
 
   if (!isOwner) {
-    const hasAccess =
-      folio.studio_full_access ||
-      folio.studio_is_public ||
-      (!!session?.user?.email && await isStudioInvited(folio.id, session.user.email))
+    const hasAccess = folio.studio_full_access || folio.studio_is_public
     if (!hasAccess) redirect(`/folio-ai/${slug}`)
   }
 
-  const [balance, invites, studioInvites, videos] = await Promise.all([
+  const [balance, invites, videos] = await Promise.all([
     getTokenBalance(folio.owner_id),
     isOwner ? getFolioInvites(folio.id) : Promise.resolve([]),
-    isOwner ? getStudioInvites(folio.id) : Promise.resolve([]),
     getFolioVideos(folio.id),
   ])
 
@@ -99,7 +95,6 @@ export default async function FolioDesignPage({
           initialIsPublic={folio.is_public}
           initialStudioIsPublic={folio.studio_is_public}
           initialInvites={invites}
-          initialStudioInvites={studioInvites}
           initialCalUsername={folio.cal_username}
           initialVideos={videos}
         />
