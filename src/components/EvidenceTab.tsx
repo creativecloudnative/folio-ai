@@ -47,7 +47,8 @@ function formatDate(iso: string) {
   return `${m}/${d}/${y}`
 }
 
-export default function EvidenceTab() {
+export default function EvidenceTab({ demoSlug }: { demoSlug?: string }) {
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const [preset,        setPreset]        = useState<Preset>('2weeks')
   const [customFrom,    setCustomFrom]    = useState('')
   const [customTo,      setCustomTo]      = useState('')
@@ -78,7 +79,7 @@ export default function EvidenceTab() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/api/studio/evidence?from=${from}&to=${to}`)
+        const res = await fetch(`${apiBase}/evidence?from=${from}&to=${to}`)
         if (cancelled) return
         if (!res.ok) { setError('Failed to load report'); return }
         const data = await res.json()
@@ -91,7 +92,7 @@ export default function EvidenceTab() {
     }
     run()
     return () => { cancelled = true }
-  }, [fetchRange])
+  }, [fetchRange, apiBase])
 
   const from = fetchRange?.from ?? ''
   const to   = fetchRange?.to   ?? ''

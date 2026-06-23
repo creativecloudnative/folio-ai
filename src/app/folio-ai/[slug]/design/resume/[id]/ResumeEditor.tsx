@@ -55,9 +55,11 @@ const TEMPLATE_CSS: Record<ResumeTemplate, string> = {
 type Props = {
   resume: Resume
   folioSlug: string
+  demoSlug?: string
 }
 
-export default function ResumeEditor({ resume: initial, folioSlug }: Props) {
+export default function ResumeEditor({ resume: initial, folioSlug, demoSlug }: Props) {
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const router = useRouter()
   const [content, setContent]     = useState(initial.content)
   const [title, setTitle]         = useState(initial.title)
@@ -77,7 +79,7 @@ export default function ResumeEditor({ resume: initial, folioSlug }: Props) {
   async function save() {
     setSaving(true)
     try {
-      const res = await fetch(`/api/studio/resumes/${initial.id}`, {
+      const res = await fetch(`${apiBase}/resumes/${initial.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, title, template }),

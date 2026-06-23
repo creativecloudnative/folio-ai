@@ -15,12 +15,14 @@ export default async function ResumeViewerPage({
   const [session, folio] = await Promise.all([auth(), getFolioBySlug(slug)])
 
   if (!folio) notFound()
-  if (!session?.user || session.user.id !== folio.owner_id) {
-    redirect(`/folio-ai/${slug}/design`)
-  }
 
-  const resume = await getResume(id, session.user.id)
+  const isOwner      = !!session?.user && session.user.id === folio.owner_id
+  const isFullAccess = !isOwner && folio.studio_full_access && folio.studio_is_public
+
+  if (!isOwner && !isFullAccess) redirect(`/folio-ai/${slug}/design`)
+
+  const resume = await getResume(id, folio.owner_id)
   if (!resume) notFound()
 
-  return <ResumeEditor resume={resume} folioSlug={slug} />
+  return <ResumeEditor resume={resume} folioSlug={slug} demoSlug={isFullAccess ? slug : undefined} />
 }

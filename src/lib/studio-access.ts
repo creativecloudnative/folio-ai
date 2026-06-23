@@ -3,6 +3,14 @@ import { isStudioInvited } from '@/lib/studio-invites'
 
 type SessionLike = { user?: { id?: string | null; email?: string | null } | null } | null
 
+// Returns the folio's owner_id if the folio has studio_full_access enabled —
+// allows unauthenticated visitors to use owner-only tabs on demo folios.
+export async function resolveFullAccessOwner(slug: string): Promise<string | null> {
+  const folio = await getFolioBySlug(slug)
+  if (!folio || !folio.studio_full_access || !folio.studio_is_public) return null
+  return folio.owner_id
+}
+
 export async function resolveStudioOwner(slug: string, session: SessionLike): Promise<Folio | null> {
   const folio = await getFolioBySlug(slug)
   if (!folio) return null

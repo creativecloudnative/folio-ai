@@ -23,11 +23,14 @@ export default async function FolioDesignPage({
 
   if (!folio) notFound()
 
-  const isOwner = !!session?.user && folio.owner_id === session.user.id
+  const isOwner      = !!session?.user && folio.owner_id === session.user.id
+  // Full-access: visitor can see and use all owner-only tabs on a demo folio
+  const isFullAccess = !isOwner && folio.studio_full_access && folio.studio_is_public
 
   if (!isOwner) {
-    // Public studios are open to anyone; private studios require sign-in + invite
-    const hasAccess = folio.studio_is_public ||
+    const hasAccess =
+      folio.studio_full_access ||
+      folio.studio_is_public ||
       (!!session?.user?.email && await isStudioInvited(folio.id, session.user.email))
     if (!hasAccess) redirect(`/folio-ai/${slug}`)
   }
@@ -50,9 +53,14 @@ export default async function FolioDesignPage({
           <span className="text-xs text-zinc-500 border border-zinc-700 rounded px-2 py-0.5">
             {folio.name}
           </span>
-          {!isOwner && (
+          {!isOwner && !isFullAccess && (
             <span className="text-xs text-amber-400 border border-amber-700/50 bg-amber-900/20 rounded px-2 py-0.5">
               read-only
+            </span>
+          )}
+          {isFullAccess && (
+            <span className="text-xs text-emerald-400 border border-emerald-700/50 bg-emerald-900/20 rounded px-2 py-0.5">
+              demo
             </span>
           )}
         </div>
@@ -79,7 +87,8 @@ export default async function FolioDesignPage({
 
       <div className="flex-1 overflow-hidden">
         <StudioTabs
-          isViewer={!isOwner}
+          isViewer={!isOwner && !isFullAccess}
+          fullAccessSlug={isFullAccess ? slug : undefined}
           initialBalance={balance}
           folioSlug={slug}
           initialIsPublic={folio.is_public}
