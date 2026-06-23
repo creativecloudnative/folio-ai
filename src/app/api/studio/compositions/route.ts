@@ -2,14 +2,18 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { getCompositions, createComposition, seedCompositionsFromDocuments, uniqueCompositionSlug } from '@/lib/compositions'
 import { nameToSlug } from '@/lib/folios'
+import { sql } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
-  await seedCompositionsFromDocuments(session.user.id)
-  const compositions = await getCompositions(session.user.id)
+  const ownerId = session.user.id
+  // Only auto-seed on first visit — re-seeding on every load would resurrect deleted compositions
+  const existing = await sql`SELECT id FROM compositions WHERE owner_id = ${ownerId} LIMIT 1`
+  if (existing.length === 0) await seedCompositionsFromDocuments(ownerId)
+  const compositions = await getCompositions(ownerId)
   return Response.json({ compositions })
 }
 
