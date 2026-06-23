@@ -57,7 +57,7 @@ export default async function FolioHomePage() {
   const session = await auth()
   const folioSlug = session?.user?.folioSlug
   const isAdmin = isAdminEmail(session?.user?.email)
-  const demoSlug = 'alex-chen'
+  const demoSlug = 'justin-a-demo'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
