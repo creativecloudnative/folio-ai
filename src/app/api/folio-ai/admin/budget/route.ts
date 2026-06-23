@@ -11,14 +11,14 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  let body: { folioId: string; token_budget?: number; reset_used?: boolean }
+  let body: { folioId: string; token_budget?: number; reset_used?: boolean; image_gen_quota?: number; reset_img_used?: boolean }
   try {
     body = await req.json()
   } catch {
     return Response.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  const { folioId, token_budget, reset_used } = body
+  const { folioId, token_budget, reset_used, image_gen_quota, reset_img_used } = body
 
   if (!folioId) return Response.json({ error: 'folioId required' }, { status: 400 })
 
@@ -31,6 +31,17 @@ export async function PATCH(req: NextRequest) {
 
   if (reset_used) {
     await sql`UPDATE folios SET tokens_used = 0 WHERE id = ${folioId}`
+  }
+
+  if (image_gen_quota !== undefined) {
+    if (!Number.isInteger(image_gen_quota) || image_gen_quota < 0) {
+      return Response.json({ error: 'image_gen_quota must be a non-negative integer' }, { status: 400 })
+    }
+    await sql`UPDATE folios SET image_gen_quota = ${image_gen_quota} WHERE id = ${folioId}`
+  }
+
+  if (reset_img_used) {
+    await sql`UPDATE folios SET image_gen_used = 0 WHERE id = ${folioId}`
   }
 
   return Response.json({ ok: true })

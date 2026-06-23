@@ -12,6 +12,11 @@ export type Folio = {
   token_budget: number
   tokens_used: number
   cal_username: string | null
+  headshot_url: string | null
+  headshot_visible: boolean
+  image_gen_quota: number
+  image_gen_used: number
+  image_gen_reset_at: string
   created_at: string
 }
 
@@ -19,6 +24,13 @@ export type TokenBalance = {
   budget: number
   used: number
   remaining: number
+}
+
+export type ImageGenBalance = {
+  quota: number
+  used: number
+  remaining: number
+  reset_at: Date
 }
 
 const DEFAULT_TOKEN_BUDGET = 100_000
@@ -40,6 +52,11 @@ async function ensureTable() {
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE`
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS cal_username TEXT`
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS studio_is_public BOOLEAN NOT NULL DEFAULT FALSE`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS headshot_url TEXT`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS headshot_visible BOOLEAN NOT NULL DEFAULT FALSE`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_quota INT NOT NULL DEFAULT 3`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_used INT NOT NULL DEFAULT 0`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_reset_at TIMESTAMPTZ NOT NULL DEFAULT (date_trunc('month', now()) + interval '1 month')`
 }
 
 export function nameToSlug(name: string): string {
@@ -66,7 +83,7 @@ export async function upsertFolioOnLogin(
   await ensureTable()
 
   const existing = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, created_at
+    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
     FROM folios WHERE owner_id = ${ownerId} LIMIT 1
   `
   if (existing.length > 0) return existing[0] as Folio
@@ -77,7 +94,7 @@ export async function upsertFolioOnLogin(
   const rows = await sql`
     INSERT INTO folios (owner_id, slug, name, email, is_public)
     VALUES (${ownerId}, ${slug}, ${name}, ${email}, ${isCreator})
-    RETURNING id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, created_at
+    RETURNING id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
   `
   console.log('[folio-ai new-folio]', JSON.stringify({ slug, name, email }))
 
@@ -90,7 +107,7 @@ export async function upsertFolioOnLogin(
 export async function getFolioBySlug(slug: string): Promise<Folio | null> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, created_at
+    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
     FROM folios WHERE slug = ${slug} LIMIT 1
   `
   return (rows[0] as Folio) ?? null
@@ -99,7 +116,7 @@ export async function getFolioBySlug(slug: string): Promise<Folio | null> {
 export async function getFolioByOwnerId(ownerId: string): Promise<Folio | null> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, created_at
+    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
     FROM folios WHERE owner_id = ${ownerId} LIMIT 1
   `
   return (rows[0] as Folio) ?? null
@@ -108,7 +125,7 @@ export async function getFolioByOwnerId(ownerId: string): Promise<Folio | null> 
 export async function getAllFolios(): Promise<Folio[]> {
   await ensureTable()
   const rows = await sql`
-    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, created_at
+    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
     FROM folios ORDER BY created_at DESC
   `
   return rows as Folio[]
@@ -175,4 +192,59 @@ export async function consumeTokens(ownerId: string, amount: number): Promise<vo
   await sql`
     UPDATE folios SET tokens_used = tokens_used + ${amount} WHERE owner_id = ${ownerId}
   `
+}
+
+export async function getImageGenBalance(ownerId: string): Promise<ImageGenBalance> {
+  await ensureTable()
+  const rows = await sql`
+    SELECT image_gen_quota, image_gen_used, image_gen_reset_at FROM folios WHERE owner_id = ${ownerId} LIMIT 1
+  `
+  if (rows.length === 0) return { quota: 3, used: 0, remaining: 3, reset_at: new Date() }
+  const { image_gen_quota, image_gen_used, image_gen_reset_at } = rows[0] as {
+    image_gen_quota: number
+    image_gen_used: number
+    image_gen_reset_at: Date
+  }
+  const resetAt = new Date(image_gen_reset_at)
+  const effectiveUsed = new Date() >= resetAt ? 0 : image_gen_used
+  return {
+    quota: image_gen_quota,
+    used: effectiveUsed,
+    remaining: Math.max(0, image_gen_quota - effectiveUsed),
+    reset_at: resetAt,
+  }
+}
+
+export async function checkAndConsumeImageGen(ownerId: string): Promise<{ ok: boolean; remaining: number }> {
+  // Atomic: resets monthly window if expired, then increments if quota allows
+  const rows = await sql`
+    UPDATE folios
+    SET
+      image_gen_used = CASE
+        WHEN NOW() >= image_gen_reset_at THEN 1
+        ELSE image_gen_used + 1
+      END,
+      image_gen_reset_at = CASE
+        WHEN NOW() >= image_gen_reset_at THEN date_trunc('month', NOW()) + interval '1 month'
+        ELSE image_gen_reset_at
+      END
+    WHERE owner_id = ${ownerId}
+      AND (NOW() >= image_gen_reset_at OR image_gen_used < image_gen_quota)
+    RETURNING image_gen_used, image_gen_quota
+  `
+  if (rows.length === 0) return { ok: false, remaining: 0 }
+  const { image_gen_used, image_gen_quota } = rows[0] as { image_gen_used: number; image_gen_quota: number }
+  return { ok: true, remaining: Math.max(0, image_gen_quota - image_gen_used) }
+}
+
+export async function setHeadshotUrl(ownerId: string, url: string | null): Promise<void> {
+  await sql`UPDATE folios SET headshot_url = ${url} WHERE owner_id = ${ownerId}`
+}
+
+export async function setHeadshotVisible(ownerId: string, visible: boolean): Promise<void> {
+  await sql`UPDATE folios SET headshot_visible = ${visible} WHERE owner_id = ${ownerId}`
+}
+
+export async function setImageGenQuota(folioId: string, quota: number): Promise<void> {
+  await sql`UPDATE folios SET image_gen_quota = ${quota} WHERE id = ${folioId}`
 }
