@@ -33,7 +33,7 @@ function sortApplications(list: JobApplication[], col: SortCol, dir: SortDir): J
   })
 }
 
-export default function ApplicationsTab({ demoSlug }: { demoSlug?: string }) {
+export default function ApplicationsTab({ demoSlug, isViewer }: { demoSlug?: string; isViewer?: boolean }) {
   const params = useParams<{ slug: string }>()
   const folioSlug = params?.slug ?? ''
   const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
@@ -152,12 +152,14 @@ export default function ApplicationsTab({ demoSlug }: { demoSlug?: string }) {
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
               ))}
             </select>
-            <button
-              onClick={() => { setShowForm((v) => !v); setFormError('') }}
-              className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
-            >
-              {showForm ? '✕ Cancel' : '+ Add Application'}
-            </button>
+            {!isViewer && (
+              <button
+                onClick={() => { setShowForm((v) => !v); setFormError('') }}
+                className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+              >
+                {showForm ? '✕ Cancel' : '+ Add Application'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -282,10 +284,12 @@ export default function ApplicationsTab({ demoSlug }: { demoSlug?: string }) {
                         className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
                         View
                       </Link>
-                      <button onClick={() => handleDelete(a.id, a.company, a.role)}
-                        className="text-xs text-zinc-600 hover:text-red-400 transition-colors">
-                        Delete
-                      </button>
+                      {!isViewer && (
+                        <button onClick={() => handleDelete(a.id, a.company, a.role)}
+                          className="text-xs text-zinc-600 hover:text-red-400 transition-colors">
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

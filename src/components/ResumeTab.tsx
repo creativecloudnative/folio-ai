@@ -16,7 +16,7 @@ type ResumeRow = {
 
 const TEMPLATES = Object.entries(RESUME_TEMPLATES) as [ResumeTemplate, { label: string; description: string }][]
 
-export default function ResumeTab({ demoSlug }: { demoSlug?: string }) {
+export default function ResumeTab({ demoSlug, isViewer }: { demoSlug?: string; isViewer?: boolean }) {
   const params = useParams<{ slug: string }>()
   const folioSlug = params?.slug ?? ''
   const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
@@ -125,12 +125,14 @@ export default function ResumeTab({ demoSlug }: { demoSlug?: string }) {
             <h2 className="text-sm font-semibold text-zinc-200">Resumes</h2>
             <p className="text-xs text-zinc-500 mt-0.5">{resumes.length} saved</p>
           </div>
-          <button
-            onClick={() => { setShowCreate((v) => !v); setGenError(''); setFetchError('') }}
-            className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
-          >
-            {showCreate ? '✕ Cancel' : '+ New Resume'}
-          </button>
+          {!isViewer && (
+            <button
+              onClick={() => { setShowCreate((v) => !v); setGenError(''); setFetchError('') }}
+              className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+            >
+              {showCreate ? '✕ Cancel' : '+ New Resume'}
+            </button>
+          )}
         </div>
 
         {/* Create panel */}
@@ -261,12 +263,14 @@ export default function ResumeTab({ demoSlug }: { demoSlug?: string }) {
                       >
                         View
                       </Link>
-                      <button
-                        onClick={() => handleDelete(r.id, r.title)}
-                        className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {!isViewer && (
+                        <button
+                          onClick={() => handleDelete(r.id, r.title)}
+                          className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

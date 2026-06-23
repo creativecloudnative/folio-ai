@@ -22,6 +22,7 @@ type Props = {
 const EMPTY_EVENT = { event_type: 'note' as EventType, title: '', notes: '', occurred_at: '' }
 
 export default function ApplicationDetail({ application: initial, initialEvents, resumes, folioSlug, demoSlug }: Props) {
+  const isViewer = !!demoSlug
   const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const router = useRouter()
   const [app, setApp] = useState(initial)
@@ -159,7 +160,7 @@ export default function ApplicationDetail({ application: initial, initialEvents,
           {STATUS_LABELS[app.status]}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          {!editingApp && (
+          {!editingApp && !isViewer && (
             <button onClick={() => setEditingApp(true)}
               className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors">
               Edit
@@ -257,10 +258,12 @@ export default function ApplicationDetail({ application: initial, initialEvents,
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Timeline</h3>
-              <button onClick={() => { setShowEventForm((v) => !v); setEventError('') }}
-                className="text-xs px-2.5 py-1 rounded border border-zinc-700 text-zinc-400 hover:border-indigo-500 hover:text-indigo-300 transition-colors">
-                {showEventForm ? '✕ Cancel' : '+ Add entry'}
-              </button>
+              {!isViewer && (
+                <button onClick={() => { setShowEventForm((v) => !v); setEventError('') }}
+                  className="text-xs px-2.5 py-1 rounded border border-zinc-700 text-zinc-400 hover:border-indigo-500 hover:text-indigo-300 transition-colors">
+                  {showEventForm ? '✕ Cancel' : '+ Add entry'}
+                </button>
+              )}
             </div>
 
             {/* New event form */}
@@ -359,12 +362,14 @@ export default function ApplicationDetail({ application: initial, initialEvents,
                             <span className="text-xs text-zinc-500 tabular-nums">{formatDate(e.occurred_at)}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button onClick={() => startEditEvent(e)}
-                            className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Edit</button>
-                          <button onClick={() => deleteEvent(e.id)}
-                            className="text-xs text-zinc-600 hover:text-red-400 transition-colors">Delete</button>
-                        </div>
+                        {!isViewer && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => startEditEvent(e)}
+                              className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Edit</button>
+                            <button onClick={() => deleteEvent(e.id)}
+                              className="text-xs text-zinc-600 hover:text-red-400 transition-colors">Delete</button>
+                          </div>
+                        )}
                       </div>
                       <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">{e.notes}</p>
                     </div>

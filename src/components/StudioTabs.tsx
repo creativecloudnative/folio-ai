@@ -325,8 +325,8 @@ export default function StudioTabs({
             <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer || !!fullAccessSlug} />
           )}
           {active === 'profile'      && <ProfileTab />}
-          {active === 'resumes'      && <ResumeTab      demoSlug={fullAccessSlug} />}
-          {active === 'applications' && <ApplicationsTab demoSlug={fullAccessSlug} />}
+          {active === 'resumes'      && <ResumeTab      demoSlug={fullAccessSlug} isViewer={!!fullAccessSlug} />}
+          {active === 'applications' && <ApplicationsTab demoSlug={fullAccessSlug} isViewer={!!fullAccessSlug} />}
           {active === 'evidence'     && <EvidenceTab     demoSlug={fullAccessSlug} />}
         </div>
       </div>

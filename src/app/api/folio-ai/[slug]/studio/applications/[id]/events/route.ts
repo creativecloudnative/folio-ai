@@ -14,20 +14,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return Response.json({ events })
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
-  const { slug, id } = await params
-  const ownerId = await resolveFullAccessOwner(slug)
-  if (!ownerId) return Response.json({ error: 'not_found' }, { status: 404 })
-  const body = await req.json() as {
-    event_type?: EventType; title?: string; notes?: string; occurred_at?: string
-  }
-  const event = await createEvent({
-    applicationId: id,
-    ownerId,
-    eventType: body.event_type ?? 'note',
-    title: body.title?.trim() || null,
-    notes: body.notes ?? '',
-    occurredAt: body.occurred_at || null,
-  })
-  return Response.json({ event }, { status: 201 })
+export async function POST() {
+  return Response.json({ error: 'demo_read_only' }, { status: 403 })
 }
