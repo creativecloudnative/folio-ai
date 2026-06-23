@@ -237,6 +237,24 @@ flowchart LR
   E --> F[Resume Editor split-pane and print/PDF]
 \`\`\`
 
+### Headshot Generator
+
+The studio includes an AI headshot generator — upload a photo, pick a style, and get a professional portrait back in seconds. It is the one feature in folio-ai that calls OpenAI rather than Anthropic.
+
+Technically, it uses OpenAI's \`gpt-image-1\` model via the Images Edit API. The uploaded photo is passed as the base image alongside a style prompt. Up to four additional reference images can be provided to guide the aesthetic — these are sent together as a multi-image edit request.
+
+Three style presets are supported:
+
+| Style | Prompt |
+|---|---|
+| Professional | Studio lighting, neutral background |
+| Black & White | High contrast, studio lighting |
+| Illustrated | Clean vector art, professional avatar |
+
+A per-account monthly quota limits image generation calls, controlled by a token balance system in Neon Postgres. Each generation check decrements the balance atomically, preventing runaway API spend.
+
+The generated image is returned as a base64 data URL, previewed in the browser, and saved to Vercel Blob storage when the user accepts it — overwriting the previous headshot at a stable URL path keyed by user ID.
+
 ### Visitor Memory
 
 When a visitor interacts with the chat agent and provides their name or email (e.g. when scheduling a meeting), the agent can call \`save_connection\` to store a profile. On subsequent visits, the agent retrieves the connection profile and can personalise the conversation — remembering what they discussed, what role they're hiring for, etc.

@@ -29,7 +29,7 @@ const FEATURES = [
     ),
     title: 'Content Studio',
     description:
-      'An AI-powered studio for documenting your work. Walk the assistant through a project and it structures it into a polished case study or architecture design.',
+      'An AI-powered studio for documenting your work. Walk the assistant through a project and it structures it into a polished case study or architecture design. Includes a professional headshot generator: upload a photo and generate studio-quality portraits in multiple styles.',
   },
   {
     icon: (
