@@ -10,10 +10,11 @@ import SharingTab from './SharingTab'
 import IntegrationsTab from './IntegrationsTab'
 import VideosTab from './VideosTab'
 import ProfileTab from './ProfileTab'
+import ResumeTab from './ResumeTab'
 import ApplicationsTab from './ApplicationsTab'
 import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile' | 'applications'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile' | 'resumes' | 'applications'
 
 type RestoredConversation = {
   id: string
@@ -76,6 +77,11 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Manage your headshot and control whether it appears on your folio.',
     detail: 'Upload a photo, import your LinkedIn profile picture, or use AI to generate a professional headshot from your existing image. You get 3 AI generations per month. Toggle visibility to show or hide your headshot on your public folio page.',
   },
+  resumes: {
+    label: 'Resumes',
+    short: 'Generate tailored resumes from job descriptions using your portfolio as source material.',
+    detail: 'Paste a job description or supply a URL — the builder fetches the posting, retrieves semantically relevant content from your portfolio via vector search, and asks Claude to write a resume that mirrors the job\'s language and requirements. Choose from four templates (Modern, Classic, Compact, Minimal). After generation, edit the markdown directly and print to PDF from the preview panel. Every resume is saved and can be restored, edited, or deleted at any time.',
+  },
   applications: {
     label: 'Applications',
     short: 'Track job applications, interviews, and conversations in one place.',
@@ -83,7 +89,7 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
   },
 }
 
-const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile', 'applications']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile', 'resumes', 'applications']
 const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
@@ -228,6 +234,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
           <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
         )}
         {active === 'profile' && <ProfileTab />}
+        {active === 'resumes' && <ResumeTab />}
         {active === 'applications' && <ApplicationsTab />}
       </div>
     </div>
