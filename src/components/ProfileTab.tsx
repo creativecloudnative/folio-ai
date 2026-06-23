@@ -10,24 +10,30 @@ type ImageGenBalance = {
   reset_at: string
 }
 
-// Proxy URL for the owner's headshot — never exposes the raw Blob URL to the client
+type Style = 'professional' | 'bw' | 'illustrated'
+
+const STYLES: { value: Style; label: string; description: string }[] = [
+  { value: 'professional', label: 'Professional',  description: 'Studio lighting, neutral background' },
+  { value: 'bw',           label: 'Black & white', description: 'High contrast, classic look' },
+  { value: 'illustrated',  label: 'Illustrated',   description: 'Clean vector avatar style' },
+]
+
 const OWNER_IMAGE_URL = '/api/studio/headshot/image'
 
 export default function ProfileTab() {
-  const [hasHeadshot, setHasHeadshot] = useState(false)
-  // Cache-bust key so the <img> reloads after upload/import without a page refresh
-  const [imageBust, setImageBust] = useState(0)
-  const [visible, setVisible] = useState(false)
-  const [balance, setBalance] = useState<ImageGenBalance | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [hasHeadshot, setHasHeadshot]   = useState(false)
+  const [imageBust, setImageBust]       = useState(0)
+  const [visible, setVisible]           = useState(false)
+  const [balance, setBalance]           = useState<ImageGenBalance | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [selectedStyle, setSelectedStyle] = useState<Style>('professional')
 
-  const [uploadBusy, setUploadBusy] = useState(false)
-  const [importBusy, setImportBusy] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [generatedOptions, setGeneratedOptions] = useState<string[]>([])
-  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  const [uploadBusy, setUploadBusy]     = useState(false)
+  const [importBusy, setImportBusy]     = useState(false)
+  const [generating, setGenerating]     = useState(false)
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null)
   const [savingOption, setSavingOption] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]               = useState<string | null>(null)
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -64,7 +70,7 @@ export default function ProfileTab() {
     if (res.ok) {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
-      setGeneratedOptions([])
+      setGeneratedUrl(null)
     } else {
       setError(data.error ?? 'Upload failed')
     }
@@ -80,7 +86,7 @@ export default function ProfileTab() {
     if (res.ok) {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
-      setGeneratedOptions([])
+      setGeneratedUrl(null)
     } else {
       setError(data.error ?? 'Import failed')
     }
@@ -90,12 +96,15 @@ export default function ProfileTab() {
   async function handleGenerate() {
     setError(null)
     setGenerating(true)
-    setGeneratedOptions([])
-    setSelectedOption(null)
-    const res = await fetch('/api/studio/headshot/generate', { method: 'POST' })
+    setGeneratedUrl(null)
+    const res = await fetch('/api/studio/headshot/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ style: selectedStyle }),
+    })
     const data = await res.json()
     if (res.ok) {
-      setGeneratedOptions(data.urls ?? [])
+      setGeneratedUrl(data.dataUrl ?? null)
       setBalance((prev) => prev ? { ...prev, remaining: data.remaining, used: prev.quota - data.remaining } : prev)
     } else {
       setError(data.error ?? 'Generation failed')
@@ -103,20 +112,20 @@ export default function ProfileTab() {
     setGenerating(false)
   }
 
-  async function saveOption(dataUrl: string) {
+  async function saveGenerated() {
+    if (!generatedUrl) return
     setSavingOption(true)
     setError(null)
     const res = await fetch('/api/studio/headshot/save-generated', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dataUrl }),
+      body: JSON.stringify({ dataUrl: generatedUrl }),
     })
     const data = await res.json()
     if (res.ok) {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
-      setGeneratedOptions([])
-      setSelectedOption(null)
+      setGeneratedUrl(null)
     } else {
       setError(data.error ?? 'Save failed')
     }
@@ -127,12 +136,10 @@ export default function ProfileTab() {
     ? new Date(balance.reset_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null
 
+  const quotaExhausted = (balance?.remaining ?? 0) === 0
+
   if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center text-zinc-600 text-sm">
-        Loading…
-      </div>
-    )
+    return <div className="h-full flex items-center justify-center text-zinc-600 text-sm">Loading…</div>
   }
 
   return (
@@ -194,22 +201,16 @@ export default function ProfileTab() {
             {importBusy ? 'Importing…' : 'in Import from LinkedIn'}
           </button>
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={handleUpload}
-        />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleUpload} />
         <p className="text-[11px] text-zinc-600">
-          JPEG, PNG, WebP, or GIF — max 5 MB. LinkedIn import uses your current profile picture.
+          JPEG, PNG, WebP, or GIF — max 5 MB. Images are moderated before upload.
         </p>
       </section>
 
       {/* AI Generation */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-300">Generate professional headshot</h3>
+          <h3 className="text-sm font-semibold text-zinc-300">AI generation</h3>
           {balance && (
             <span className="text-[11px] text-zinc-500">
               {balance.remaining} of {balance.quota} remaining
@@ -218,59 +219,67 @@ export default function ProfileTab() {
           )}
         </div>
         <p className="text-xs text-zinc-500">
-          Uses your current headshot as a base. Generates 3 professional options — you pick one to save.
+          Uses your current headshot as a base. Each generation costs 1 credit.
         </p>
+
+        {/* Style selector */}
+        <div className="grid grid-cols-3 gap-2">
+          {STYLES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setSelectedStyle(s.value)}
+              className={`px-3 py-2.5 rounded border text-left transition-colors ${
+                selectedStyle === s.value
+                  ? 'border-indigo-500 bg-indigo-950/40 text-indigo-300'
+                  : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <p className="text-xs font-medium">{s.label}</p>
+              <p className="text-[11px] text-zinc-600 mt-0.5">{s.description}</p>
+            </button>
+          ))}
+        </div>
 
         <button
           onClick={handleGenerate}
-          disabled={!hasHeadshot || generating || (balance?.remaining ?? 0) === 0}
+          disabled={!hasHeadshot || generating || quotaExhausted}
           className="w-full px-4 py-2.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
         >
-          {generating ? 'Generating 3 options…' : 'Generate 3 options'}
+          {generating ? 'Generating…' : 'Generate'}
         </button>
 
         {!hasHeadshot && (
           <p className="text-[11px] text-amber-500">Upload a headshot above before generating.</p>
         )}
-        {balance?.remaining === 0 && (
+        {quotaExhausted && (
           <p className="text-[11px] text-amber-500">
             Quota exhausted{resetDate ? ` — resets ${resetDate}` : ''}.
           </p>
         )}
 
-        {/* Generated options */}
-        {generatedOptions.length > 0 && (
+        {/* Generated result */}
+        {generatedUrl && (
           <div className="space-y-3">
-            <p className="text-xs text-zinc-400">Select an option to save it as your headshot:</p>
-            <div className="grid grid-cols-3 gap-3">
-              {generatedOptions.map((url, i) => (
-                <button
-                  key={url}
-                  onClick={() => setSelectedOption(i)}
-                  className={`relative rounded-lg overflow-hidden border-2 transition-all aspect-square ${
-                    selectedOption === i
-                      ? 'border-indigo-500 ring-2 ring-indigo-500/30'
-                      : 'border-zinc-700 hover:border-zinc-500'
-                  }`}
-                >
-                  <Image src={url} alt={`Option ${i + 1}`} fill className="object-cover" unoptimized />
-                  {selectedOption === i && (
-                    <div className="absolute inset-0 bg-indigo-500/10 flex items-center justify-center">
-                      <span className="text-white text-lg">✓</span>
-                    </div>
-                  )}
-                </button>
-              ))}
+            <p className="text-xs text-zinc-400">Generated result:</p>
+            <div className="relative w-40 h-40 rounded-xl overflow-hidden border border-zinc-700">
+              <Image src={generatedUrl} alt="Generated headshot" fill className="object-cover" unoptimized />
             </div>
-            {selectedOption !== null && (
+            <div className="flex gap-2">
               <button
-                onClick={() => saveOption(generatedOptions[selectedOption])}
+                onClick={saveGenerated}
                 disabled={savingOption}
-                className="w-full px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium transition-colors"
+                className="flex-1 px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium transition-colors"
               >
                 {savingOption ? 'Saving…' : 'Save as headshot'}
               </button>
-            )}
+              <button
+                onClick={handleGenerate}
+                disabled={generating || quotaExhausted}
+                className="px-4 py-2 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 text-sm transition-colors disabled:opacity-40"
+              >
+                Regenerate
+              </button>
+            </div>
           </div>
         )}
       </section>
