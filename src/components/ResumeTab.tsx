@@ -16,9 +16,10 @@ type ResumeRow = {
 
 const TEMPLATES = Object.entries(RESUME_TEMPLATES) as [ResumeTemplate, { label: string; description: string }][]
 
-export default function ResumeTab() {
+export default function ResumeTab({ demoSlug }: { demoSlug?: string }) {
   const params = useParams<{ slug: string }>()
   const folioSlug = params?.slug ?? ''
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
 
   const [resumes, setResumes] = useState<ResumeRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +41,7 @@ export default function ResumeTab() {
     async function run() {
       setLoading(true)
       try {
-        const res = await fetch('/api/studio/resumes')
+        const res = await fetch(`${apiBase}/resumes`)
         if (res.ok && !cancelled) {
           const data = await res.json()
           setResumes(data.resumes ?? [])
@@ -51,14 +52,14 @@ export default function ResumeTab() {
     }
     run()
     return () => { cancelled = true }
-  }, [])
+  }, [apiBase])
 
   async function handleFetchUrl() {
     if (!jobUrl.trim()) return
     setFetching(true)
     setFetchError('')
     try {
-      const res = await fetch('/api/studio/resumes/fetch-job', {
+      const res = await fetch(`${apiBase}/resumes/fetch-job`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: jobUrl.trim() }),
@@ -80,7 +81,7 @@ export default function ResumeTab() {
     setGenerating(true)
     setGenError('')
     try {
-      const res = await fetch('/api/studio/resumes', {
+      const res = await fetch(`${apiBase}/resumes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,7 +107,7 @@ export default function ResumeTab() {
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"?`)) return
-    const res = await fetch(`/api/studio/resumes/${id}`, { method: 'DELETE' })
+    const res = await fetch(`${apiBase}/resumes/${id}`, { method: 'DELETE' })
     if (res.ok) setResumes((prev) => prev.filter((r) => r.id !== id))
   }
 

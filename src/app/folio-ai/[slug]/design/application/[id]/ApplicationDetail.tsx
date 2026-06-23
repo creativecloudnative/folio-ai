@@ -16,11 +16,13 @@ type Props = {
   initialEvents: ApplicationEvent[]
   resumes: ResumeOption[]
   folioSlug: string
+  demoSlug?: string
 }
 
 const EMPTY_EVENT = { event_type: 'note' as EventType, title: '', notes: '', occurred_at: '' }
 
-export default function ApplicationDetail({ application: initial, initialEvents, resumes, folioSlug }: Props) {
+export default function ApplicationDetail({ application: initial, initialEvents, resumes, folioSlug, demoSlug }: Props) {
+  const apiBase = demoSlug ? `/api/folio-ai/${demoSlug}/studio` : '/api/studio'
   const router = useRouter()
   const [app, setApp] = useState(initial)
   const [events, setEvents] = useState<ApplicationEvent[]>(initialEvents)
@@ -47,7 +49,7 @@ export default function ApplicationDetail({ application: initial, initialEvents,
   async function saveApp() {
     setSavingApp(true)
     try {
-      const res = await fetch(`/api/studio/applications/${app.id}`, {
+      const res = await fetch(`${apiBase}/applications/${app.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,7 +79,7 @@ export default function ApplicationDetail({ application: initial, initialEvents,
     setSavingEvent(true)
     setEventError('')
     try {
-      const res = await fetch(`/api/studio/applications/${app.id}/events`, {
+      const res = await fetch(`${apiBase}/applications/${app.id}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,7 +112,7 @@ export default function ApplicationDetail({ application: initial, initialEvents,
   }
 
   async function saveEvent(id: string) {
-    const res = await fetch(`/api/studio/applications/${app.id}/events/${id}`, {
+    const res = await fetch(`${apiBase}/applications/${app.id}/events/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -129,7 +131,7 @@ export default function ApplicationDetail({ application: initial, initialEvents,
 
   async function deleteEvent(id: string) {
     if (!confirm('Delete this entry?')) return
-    const res = await fetch(`/api/studio/applications/${app.id}/events/${id}`, { method: 'DELETE' })
+    const res = await fetch(`${apiBase}/applications/${app.id}/events/${id}`, { method: 'DELETE' })
     if (res.ok) setEvents((prev) => prev.filter((e) => e.id !== id))
   }
 
