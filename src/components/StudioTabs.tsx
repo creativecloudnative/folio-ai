@@ -11,9 +11,10 @@ import IntegrationsTab from './IntegrationsTab'
 import VideosTab from './VideosTab'
 import ProfileTab from './ProfileTab'
 import ResumeTab from './ResumeTab'
+import ApplicationsTab from './ApplicationsTab'
 import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile' | 'resumes'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile' | 'resumes' | 'applications'
 
 type RestoredConversation = {
   id: string
@@ -81,9 +82,14 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Generate tailored resumes from job descriptions using your portfolio as source material.',
     detail: 'Paste a job description or supply a URL — the builder fetches the posting, retrieves semantically relevant content from your portfolio via vector search, and asks Claude to write a resume that mirrors the job\'s language and requirements. Choose from four templates (Modern, Classic, Compact, Minimal). After generation, edit the markdown directly and print to PDF from the preview panel. Every resume is saved and can be restored, edited, or deleted at any time.',
   },
+  applications: {
+    label: 'Applications',
+    short: 'Track job applications, interviews, and conversations in one place.',
+    detail: 'Log applications with company, role, status, applied date, and the resume you used. Attach a running timeline of events to each application — phone screens, technical rounds, behavioral interviews, offers, follow-ups, and freeform notes. Status flows from Applied → Screening → Interviewing → Offer → Accepted (or Rejected / Withdrawn / Ghosted). Your studio chat assistant can read and update applications; the public visitor chat cannot. Application data is never exposed outside your private studio.',
+  },
 }
 
-const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile', 'resumes']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile', 'resumes', 'applications']
 const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
@@ -229,6 +235,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
         )}
         {active === 'profile' && <ProfileTab />}
         {active === 'resumes' && <ResumeTab />}
+        {active === 'applications' && <ApplicationsTab />}
       </div>
     </div>
   )
