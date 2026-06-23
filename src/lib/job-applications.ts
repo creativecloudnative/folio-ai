@@ -70,6 +70,8 @@ export type JobApplication = {
   status: ApplicationStatus
   applied_at: string | null    // ISO date string
   notes: string
+  last_event_type: EventType | null  // most recent timeline entry type
+  last_event_date: string | null     // occurred_at of most recent entry
   created_at: string
   updated_at: string
 }
@@ -90,9 +92,18 @@ export type ApplicationEvent = {
 
 export async function listApplications(ownerId: string): Promise<JobApplication[]> {
   const rows = await sql`
-    SELECT a.*, r.title AS resume_title
+    SELECT a.*, r.title AS resume_title,
+      ev.event_type AS last_event_type,
+      ev.occurred_at::text AS last_event_date
     FROM job_applications a
     LEFT JOIN resumes r ON r.id = a.resume_id
+    LEFT JOIN LATERAL (
+      SELECT event_type, occurred_at
+      FROM application_events
+      WHERE application_id = a.id
+      ORDER BY COALESCE(occurred_at, created_at::date) DESC, created_at DESC
+      LIMIT 1
+    ) ev ON true
     WHERE a.owner_id = ${ownerId}
     ORDER BY a.updated_at DESC
   `
@@ -225,9 +236,18 @@ export async function deleteEvent(id: string, ownerId: string): Promise<boolean>
 export async function listApplicationsForChat(ownerId: string, status?: string): Promise<JobApplication[]> {
   if (status) {
     const rows = await sql`
-      SELECT a.*, r.title AS resume_title
+      SELECT a.*, r.title AS resume_title,
+        ev.event_type AS last_event_type,
+        ev.occurred_at::text AS last_event_date
       FROM job_applications a
       LEFT JOIN resumes r ON r.id = a.resume_id
+      LEFT JOIN LATERAL (
+        SELECT event_type, occurred_at
+        FROM application_events
+        WHERE application_id = a.id
+        ORDER BY COALESCE(occurred_at, created_at::date) DESC, created_at DESC
+        LIMIT 1
+      ) ev ON true
       WHERE a.owner_id = ${ownerId} AND a.status = ${status}
       ORDER BY a.updated_at DESC
     `
