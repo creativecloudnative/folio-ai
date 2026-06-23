@@ -1,20 +1,45 @@
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
-import { put } from '@vercel/blob'
 import OpenAI from 'openai'
 import { getFolioByOwnerId, checkAndConsumeImageGen } from '@/lib/folios'
 
 export const dynamic = 'force-dynamic'
 
-const PROMPT = 'Professional headshot'
-const NUM_OPTIONS = 3
+const STYLE_PROMPTS: Record<string, string> = {
+  professional: 'Professional headshot, studio lighting, neutral background',
+  bw:           'Professional headshot in black and white, high contrast, studio lighting',
+  illustrated:  'Illustrated avatar portrait, clean vector art style, professional',
+}
 
-export async function POST() {
+async function fetchBlobAsFile(url: string, name: string): Promise<File | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buffer = await res.arrayBuffer()
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
+    return new File([buffer], `${name}.${ext}`, { type: contentType })
+  } catch {
+    return null
+  }
+}
+
+export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     return Response.json({ error: 'Image generation is not configured' }, { status: 503 })
   }
   const openai = new OpenAI()
+
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
+
+  let style = 'professional'
+  let referenceUrls: string[] = []
+  try {
+    const body = await req.json()
+    if (body.style && STYLE_PROMPTS[body.style]) style = body.style
+    if (Array.isArray(body.referenceUrls)) referenceUrls = body.referenceUrls.slice(0, 4)
+  } catch { /* use defaults */ }
 
   const folio = await getFolioByOwnerId(session.user.id)
   if (!folio) return Response.json({ error: 'not_found' }, { status: 404 })
@@ -22,51 +47,37 @@ export async function POST() {
     return Response.json({ error: 'Upload a headshot first before generating' }, { status: 400 })
   }
 
-  // Check quota and deduct atomically (handles monthly reset)
   const { ok, remaining } = await checkAndConsumeImageGen(session.user.id)
   if (!ok) {
     return Response.json({ error: 'Monthly image generation quota exhausted', remaining: 0 }, { status: 429 })
   }
 
-  // Fetch the current headshot to use as the base image
-  const baseRes = await fetch(folio.headshot_url)
-  if (!baseRes.ok) return Response.json({ error: 'Could not load current headshot' }, { status: 502 })
-  const baseBuffer = await baseRes.arrayBuffer()
-  const contentType = baseRes.headers.get('content-type') ?? 'image/jpeg'
-  const ext = contentType.includes('png') ? 'png' : 'jpg'
-  const baseFile = new File([baseBuffer], `headshot.${ext}`, { type: contentType })
+  const baseFile = await fetchBlobAsFile(folio.headshot_url, 'headshot')
+  if (!baseFile) return Response.json({ error: 'Could not load current headshot' }, { status: 502 })
 
-  // Generate NUM_OPTIONS in parallel
-  const results = await Promise.allSettled(
-    Array.from({ length: NUM_OPTIONS }, () =>
-      openai.images.edit({
-        model: 'gpt-image-1',
-        image: baseFile,
-        prompt: PROMPT,
-        size: '1024x1024',
-      })
-    )
-  )
+  // Fetch reference images in parallel; silently skip any that fail to load
+  const refFiles = (
+    await Promise.all(referenceUrls.map((url, i) => fetchBlobAsFile(url, `ref-${i}`)))
+  ).filter((f): f is File => f !== null)
 
-  const urls: string[] = []
-  await Promise.all(
-    results.map(async (result, i) => {
-      if (result.status === 'rejected') return
-      const b64 = result.value.data?.[0]?.b64_json
-      if (!b64) return
-      const buffer = Buffer.from(b64, 'base64')
-      const { url } = await put(
-        `headshots/${session.user.id}/generated-${Date.now()}-${i}.png`,
-        buffer,
-        { access: 'public', contentType: 'image/png' }
-      )
-      urls.push(url)
+  const images: File[] = [baseFile, ...refFiles]
+
+  try {
+    const result = await openai.images.edit({
+      model: 'gpt-image-1',
+      // gpt-image-1 accepts a single File or an array; cast needed due to SDK type lag
+      image: images.length === 1 ? images[0] : (images as unknown as File),
+      prompt: STYLE_PROMPTS[style],
+      size: '1024x1024',
     })
-  )
 
-  if (urls.length === 0) {
-    return Response.json({ error: 'Image generation failed — please try again' }, { status: 502 })
+    const b64 = (result as { data?: Array<{ b64_json?: string | null }> }).data?.[0]?.b64_json
+    if (!b64) return Response.json({ error: 'Image generation failed — please try again' }, { status: 502 })
+
+    return Response.json({ ok: true, dataUrl: `data:image/png;base64,${b64}`, remaining })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[headshot generate]', message)
+    return Response.json({ error: message }, { status: 502 })
   }
-
-  return Response.json({ ok: true, urls, remaining })
 }
