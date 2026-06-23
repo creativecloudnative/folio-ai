@@ -83,7 +83,7 @@ type Props = {
   initialBalance?: TokenBalance | null
   folioSlug?: string
   initialIsPublic?: boolean
-  initialStudioIsPublic?: boolean
+
   initialInvites?: string[]
 
   initialCalUsername?: string | null
@@ -147,7 +147,7 @@ export default function StudioTabs({
   initialBalance,
   folioSlug,
   initialIsPublic,
-  initialStudioIsPublic,
+
   initialInvites,
 
   initialCalUsername,
@@ -314,7 +314,7 @@ export default function StudioTabs({
               folioSlug={folioSlug}
               initialIsPublic={initialIsPublic ?? false}
               initialInvites={initialInvites ?? []}
-              initialStudioIsPublic={initialStudioIsPublic ?? false}
+
 
             />
           )}

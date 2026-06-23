@@ -93,7 +93,7 @@ export default async function FolioDesignPage({
           initialBalance={balance}
           folioSlug={slug}
           initialIsPublic={folio.is_public}
-          initialStudioIsPublic={folio.studio_is_public}
+
           initialInvites={invites}
           initialCalUsername={folio.cal_username}
           initialVideos={videos}
