@@ -90,7 +90,13 @@ export default function ResumeTab() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setGenError(data.error ?? 'Generation failed'); return }
+      if (!res.ok) {
+        const msg = data.error === 'budget_exceeded'
+          ? 'Token budget exhausted — ask your admin to reset the budget.'
+          : (data.error ?? 'Generation failed')
+        setGenError(msg)
+        return
+      }
       // Navigate to the viewer/editor
       window.location.href = `/folio-ai/${folioSlug}/design/resume/${data.resume.id}`
     } finally {

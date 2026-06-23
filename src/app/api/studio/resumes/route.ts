@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import Anthropic from '@anthropic-ai/sdk'
-import { getFolioByOwnerId } from '@/lib/folios'
+import { getFolioByOwnerId, getTokenBalance, consumeTokens } from '@/lib/folios'
 import { retrieveRelevant } from '@/lib/rag'
 import { listResumes, createResume, fetchJobDescription, type ResumeTemplate } from '@/lib/resumes'
 
@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Could not extract job description' }, { status: 422 })
   }
 
+  // Check token budget before hitting Claude
+  const balance = await getTokenBalance(session.user.id)
+  if (balance.remaining <= 0) {
+    return Response.json({ error: 'budget_exceeded', budget: balance }, { status: 402 })
+  }
+
   // Pull semantically relevant portfolio docs
   const chunks = await retrieveRelevant(jobDescription, session.user.id, 12, 0.25, ['job-req'])
 
@@ -107,6 +113,10 @@ export async function POST(req: NextRequest) {
       },
     ],
   })
+
+  // Consume actual tokens used (fire-and-forget, never block the response)
+  const totalTokens = (message.usage.input_tokens ?? 0) + (message.usage.output_tokens ?? 0)
+  consumeTokens(session.user.id, totalTokens).catch(() => {})
 
   const raw = message.content
     .filter((b) => b.type === 'text')
