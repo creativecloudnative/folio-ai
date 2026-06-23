@@ -305,12 +305,32 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
     const seen = new Set<string>()
     const order: string[] = []
     for (const it of items) {
+      if (it.section_label === 'hero') continue  // hero slot rendered separately
       if (!seen.has(it.section_label)) { seen.add(it.section_label); order.push(it.section_label) }
     }
     for (const l of pendingSections) {
       if (!seen.has(l)) order.push(l)
     }
     return order
+  }
+
+  function setHeroDoc(source: string) {
+    const docTitle = docs.find((d) => d.source === source)?.title ?? ''
+    setItems((prev) => {
+      const withoutHero = prev.filter((it) => it.section_label !== 'hero')
+      if (!source) return withoutHero.map((it, i) => ({ ...it, position: i }))
+      const heroItem: CompositionItem = {
+        id: crypto.randomUUID(),
+        document_source: source,
+        ref_composition_id: null,
+        ref_composition_title: null,
+        document_title: docTitle,
+        section_label: 'hero',
+        position: 0,
+      }
+      return [heroItem, ...withoutHero].map((it, i) => ({ ...it, position: i }))
+    })
+    setDirty(true)
   }
 
   function addSection(label: string) {
@@ -567,6 +587,34 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
               <p className="text-xs text-zinc-500">Loading…</p>
             ) : (
               <div className="space-y-4 max-w-2xl">
+                {/* Hero slot — folio compositions only */}
+                {selected.type === 'folio' && (
+                  <div className="rounded-lg border border-amber-800/40 bg-amber-950/10 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-800/30 bg-amber-950/20">
+                      <span className="text-xs font-semibold text-amber-400 tracking-wide uppercase">Hero</span>
+                      <span className="text-[10px] text-zinc-600">intro text displayed at the top of your folio page</span>
+                    </div>
+                    <div className="px-4 py-3">
+                      {isViewer ? (
+                        <span className="text-xs text-zinc-300">
+                          {items.find((it) => it.section_label === 'hero')?.document_title ?? '— none —'}
+                        </span>
+                      ) : (
+                        <select
+                          value={items.find((it) => it.section_label === 'hero')?.document_source ?? ''}
+                          onChange={(e) => setHeroDoc(e.target.value)}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        >
+                          <option value="">— none —</option>
+                          {docs.filter((d) => d.type === 'greeting' || d.type === 'bio').map((d) => (
+                            <option key={d.source} value={d.source}>[{d.type}] {d.title}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {getSectionLabels().map((label, sectionIdx) => {
                   const sectionLabels = getSectionLabels()
                   const sectionItems = items
