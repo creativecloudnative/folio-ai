@@ -322,7 +322,7 @@ export default function StudioTabs({
 
         {/* Tab content */}
         <div className="flex-1 overflow-hidden">
-          {active === 'home'         && <StudioHome switchTab={switchTab} isViewer={isViewer || !!fullAccessSlug} folioName={folioName} />}
+          {active === 'home'         && <StudioHome switchTab={switchTab} isViewer={isViewer && !fullAccessSlug} folioName={folioName} />}
           {active === 'dashboard'    && <DashboardTab demoSlug={fullAccessSlug} />}
           {active === 'chat' && (
             <StudioChat
