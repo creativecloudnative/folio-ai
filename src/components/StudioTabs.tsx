@@ -10,9 +10,10 @@ import SharingTab from './SharingTab'
 import IntegrationsTab from './IntegrationsTab'
 import VideosTab from './VideosTab'
 import ProfileTab from './ProfileTab'
+import ApplicationsTab from './ApplicationsTab'
 import type { FolioVideo } from '@/lib/videos'
 
-type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile'
+type Tab = 'chat' | 'documents' | 'history' | 'compositions' | 'sharing' | 'integrations' | 'videos' | 'profile' | 'applications'
 
 type RestoredConversation = {
   id: string
@@ -75,9 +76,14 @@ const TAB_META: Record<Tab, { label: string; short: string; detail: string }> = 
     short: 'Manage your headshot and control whether it appears on your folio.',
     detail: 'Upload a photo, import your LinkedIn profile picture, or use AI to generate a professional headshot from your existing image. You get 3 AI generations per month. Toggle visibility to show or hide your headshot on your public folio page.',
   },
+  applications: {
+    label: 'Applications',
+    short: 'Track job applications, interviews, and conversations in one place.',
+    detail: 'Log applications with company, role, status, applied date, and the resume you used. Attach a running timeline of events to each application — phone screens, technical rounds, behavioral interviews, offers, follow-ups, and freeform notes. Status flows from Applied → Screening → Interviewing → Offer → Accepted (or Rejected / Withdrawn / Ghosted). Your studio chat assistant can read and update applications; the public visitor chat cannot. Application data is never exposed outside your private studio.',
+  },
 }
 
-const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile']
+const OWNER_TABS: Tab[]  = ['chat', 'history', 'documents', 'compositions', 'sharing', 'integrations', 'videos', 'profile', 'applications']
 const VIEWER_TABS: Tab[] = ['chat', 'history', 'documents', 'compositions', 'videos']
 
 export default function StudioTabs({ isViewer = false, initialBalance, folioSlug, initialIsPublic, initialStudioIsPublic, initialInvites, initialStudioInvites, initialCalUsername, initialVideos }: Props) {
@@ -222,6 +228,7 @@ export default function StudioTabs({ isViewer = false, initialBalance, folioSlug
           <VideosTab folioSlug={folioSlug} initialVideos={initialVideos ?? []} isViewer={isViewer} />
         )}
         {active === 'profile' && <ProfileTab />}
+        {active === 'applications' && <ApplicationsTab />}
       </div>
     </div>
   )

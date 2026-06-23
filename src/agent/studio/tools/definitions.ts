@@ -232,4 +232,87 @@ export const studioTools: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'list_job_applications',
+    description:
+      'List the owner\'s job applications. Returns company, role, status, applied date, and linked resume for each. Optionally filter by status. This data is private — never share with public visitors.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['applied', 'screening', 'interviewing', 'offer', 'accepted', 'rejected', 'withdrawn', 'ghosted'],
+          description: 'Filter by application status. Omit to return all.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_job_application',
+    description:
+      'Get full details for a specific job application including all timeline events (interviews, notes, follow-ups). Use the application id from list_job_applications.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        application_id: {
+          type: 'string',
+          description: 'UUID of the job application',
+        },
+      },
+      required: ['application_id'],
+    },
+  },
+  {
+    name: 'add_application_note',
+    description:
+      'Add a timeline entry (note, interview record, follow-up, etc.) to an existing job application. Use this when the owner wants to log an interview, record a conversation, or jot a note about an application.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        application_id: {
+          type: 'string',
+          description: 'UUID of the job application to add the entry to',
+        },
+        event_type: {
+          type: 'string',
+          enum: ['note', 'phone_screen', 'technical', 'behavioral', 'onsite', 'offer', 'followup'],
+          description: 'Type of event',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional short title, e.g. "Round 2 with hiring manager"',
+        },
+        notes: {
+          type: 'string',
+          description: 'The content of the note or event record',
+        },
+        occurred_at: {
+          type: 'string',
+          description: 'ISO 8601 date when this event occurred, e.g. "2026-06-22". Omit if unknown.',
+        },
+      },
+      required: ['application_id', 'notes'],
+    },
+  },
+  {
+    name: 'update_application_status',
+    description:
+      'Update the status of a job application. Use when the owner says they got an offer, were rejected, withdrew, etc.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        application_id: {
+          type: 'string',
+          description: 'UUID of the job application',
+        },
+        status: {
+          type: 'string',
+          enum: ['applied', 'screening', 'interviewing', 'offer', 'accepted', 'rejected', 'withdrawn', 'ghosted'],
+          description: 'New status',
+        },
+      },
+      required: ['application_id', 'status'],
+    },
+  },
 ]

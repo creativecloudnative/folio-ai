@@ -1,4 +1,5 @@
 import { sql } from '@/lib/db'
+import { listApplicationsForChat, getApplicationWithEvents, createEvent, updateApplication, type EventType, type ApplicationStatus } from '@/lib/job-applications'
 import { ingestDocument } from '@/lib/ingest'
 import { retrieveRelevant, formatChunksForPrompt } from '@/lib/rag'
 import { getCompositions, getCompositionItems, seedCompositionsFromDocuments } from '@/lib/compositions'
@@ -302,6 +303,63 @@ export async function executeStudioTool(
       )
 
       return `Diagram "${title}" saved (source: ${source}, ${chunks} chunk${chunks !== 1 ? 's' : ''}). It can be referenced in case studies and ADRs.`
+    }
+
+    case 'list_job_applications': {
+      const status = input.status as string | undefined
+      const applications = await listApplicationsForChat(ownerId, status)
+      if (applications.length === 0) {
+        return status
+          ? `No job applications with status "${status}".`
+          : 'No job applications found.'
+      }
+      const lines = applications.map((a) =>
+        `- [${a.id}] ${a.company} — ${a.role} | Status: ${a.status}${a.applied_at ? ` | Applied: ${a.applied_at}` : ''}${a.resume_title ? ` | Resume: ${a.resume_title}` : ''}`,
+      )
+      return `${applications.length} application${applications.length !== 1 ? 's' : ''}:\n${lines.join('\n')}`
+    }
+
+    case 'get_job_application': {
+      const applicationId = input.application_id as string
+      const result = await getApplicationWithEvents(applicationId, ownerId)
+      if (!result) return `Application not found: ${applicationId}`
+      const { application: a, events } = result
+      const meta = [
+        `**${a.role} @ ${a.company}**`,
+        `Status: ${a.status}`,
+        a.applied_at ? `Applied: ${a.applied_at}` : null,
+        a.job_url ? `Job URL: ${a.job_url}` : null,
+        a.resume_title ? `Resume: ${a.resume_title}` : null,
+        a.notes ? `Notes: ${a.notes}` : null,
+      ].filter(Boolean).join('\n')
+      const timeline = events.length === 0
+        ? 'No timeline entries.'
+        : events.map((e) =>
+            `[${e.occurred_at ?? e.created_at.slice(0, 10)}] ${e.event_type.toUpperCase()}${e.title ? ` — ${e.title}` : ''}\n${e.notes}`,
+          ).join('\n\n')
+      return `${meta}\n\n**Timeline:**\n${timeline}`
+    }
+
+    case 'add_application_note': {
+      const applicationId = input.application_id as string
+      const notes = input.notes as string
+      const event = await createEvent({
+        applicationId,
+        ownerId,
+        eventType:  (input.event_type as EventType) ?? 'note',
+        title:      (input.title as string | undefined) ?? null,
+        notes,
+        occurredAt: (input.occurred_at as string | undefined) ?? null,
+      })
+      return `Entry added to application ${applicationId} (id: ${event.id}).`
+    }
+
+    case 'update_application_status': {
+      const applicationId = input.application_id as string
+      const status = input.status as ApplicationStatus
+      const updated = await updateApplication(applicationId, ownerId, { status })
+      if (!updated) return `Application not found: ${applicationId}`
+      return `Status updated to "${status}" for ${updated.role} @ ${updated.company}.`
     }
 
     default:
