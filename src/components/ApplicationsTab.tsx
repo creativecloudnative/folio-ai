@@ -4,15 +4,33 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
-  APPLICATION_STATUSES, STATUS_LABELS, STATUS_COLORS,
-  type ApplicationStatus, type JobApplication,
+  APPLICATION_STATUSES, STATUS_LABELS, STATUS_COLORS, EVENT_TYPE_LABELS,
+  type ApplicationStatus, type JobApplication, type EventType,
 } from '@/lib/job-applications'
 
 type ResumeOption = { id: string; title: string }
 
+type SortCol = 'company' | 'role' | 'status' | 'applied_at' | 'last_event_type' | 'last_event_date'
+type SortDir = 'asc' | 'desc'
+
 const EMPTY_FORM = {
   company: '', role: '', job_url: '', resume_id: '',
   status: 'applied' as ApplicationStatus, applied_at: '', notes: '',
+}
+
+function sortApplications(list: JobApplication[], col: SortCol, dir: SortDir): JobApplication[] {
+  return [...list].sort((a, b) => {
+    let av: string = '', bv: string = ''
+    if (col === 'company')         { av = a.company.toLowerCase();                     bv = b.company.toLowerCase() }
+    else if (col === 'role')       { av = a.role.toLowerCase();                        bv = b.role.toLowerCase() }
+    else if (col === 'status')     { av = a.status;                                    bv = b.status }
+    else if (col === 'applied_at') { av = a.applied_at ?? '';                          bv = b.applied_at ?? '' }
+    else if (col === 'last_event_type') { av = a.last_event_type ?? '';               bv = b.last_event_type ?? '' }
+    else if (col === 'last_event_date') { av = a.last_event_date ?? '';               bv = b.last_event_date ?? '' }
+    if (av < bv) return dir === 'asc' ? -1 : 1
+    if (av > bv) return dir === 'asc' ? 1 : -1
+    return 0
+  })
 }
 
 export default function ApplicationsTab() {
@@ -27,6 +45,8 @@ export default function ApplicationsTab() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | 'all'>('all')
+  const [sortCol, setSortCol] = useState<SortCol>('last_event_date')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
     let cancelled = false
@@ -94,9 +114,15 @@ export default function ApplicationsTab() {
     if (res.ok) setApplications((prev) => prev.filter((a) => a.id !== id))
   }
 
-  const filtered = filterStatus === 'all'
-    ? applications
-    : applications.filter((a) => a.status === filterStatus)
+  function handleSort(col: SortCol) {
+    if (col === sortCol) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const filtered = sortApplications(
+    filterStatus === 'all' ? applications : applications.filter((a) => a.status === filterStatus),
+    sortCol, sortDir,
+  )
 
   function formatDate(iso: string | null) {
     if (!iso) return '—'
@@ -199,31 +225,55 @@ export default function ApplicationsTab() {
           <table className="w-full text-sm">
             <thead className="bg-zinc-900/60 border-b border-zinc-800">
               <tr>
-                <th className="text-left px-4 py-3 text-xs text-zinc-500 font-medium">Company</th>
-                <th className="text-left px-4 py-3 text-xs text-zinc-500 font-medium">Role</th>
-                <th className="text-left px-4 py-3 text-xs text-zinc-500 font-medium">Status</th>
-                <th className="text-left px-4 py-3 text-xs text-zinc-500 font-medium">Applied</th>
+                {(
+                  [
+                    ['company',         'Company'],
+                    ['role',            'Role'],
+                    ['status',          'Status'],
+                    ['applied_at',      'Applied'],
+                    ['last_event_type', 'Last Step'],
+                    ['last_event_date', 'Last Activity'],
+                  ] as [SortCol, string][]
+                ).map(([col, label]) => (
+                  <th key={col}
+                    onClick={() => handleSort(col)}
+                    className="text-left px-4 py-3 text-xs text-zinc-500 font-medium cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap transition-colors"
+                  >
+                    {label}
+                    {sortCol === col && (
+                      <span className="ml-1 text-indigo-400">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </th>
+                ))}
                 <th className="text-left px-4 py-3 text-xs text-zinc-500 font-medium">Resume</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-600 text-xs">Loading…</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-zinc-600 text-xs">Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-zinc-600 text-xs">
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-zinc-600 text-xs">
                   {filterStatus === 'all' ? 'No applications yet — add one above.' : `No ${STATUS_LABELS[filterStatus as ApplicationStatus]} applications.`}
                 </td></tr>
               ) : filtered.map((a) => (
                 <tr key={a.id} className="hover:bg-zinc-900/40 transition-colors">
-                  <td className="px-4 py-3 font-medium text-zinc-200 text-sm">{a.company}</td>
+                  <td className="px-4 py-3 font-medium text-zinc-200 text-sm whitespace-nowrap">{a.company}</td>
                   <td className="px-4 py-3 text-zinc-400 text-xs max-w-[180px] truncate">{a.role}</td>
                   <td className="px-4 py-3">
                     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${STATUS_COLORS[a.status]}`}>
                       {STATUS_LABELS[a.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-500 text-xs tabular-nums">{formatDate(a.applied_at)}</td>
+                  <td className="px-4 py-3 text-zinc-500 text-xs tabular-nums whitespace-nowrap">{formatDate(a.applied_at)}</td>
+                  <td className="px-4 py-3">
+                    {a.last_event_type
+                      ? <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 whitespace-nowrap">
+                          {EVENT_TYPE_LABELS[a.last_event_type as EventType]}
+                        </span>
+                      : <span className="text-zinc-600 text-xs">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-500 text-xs tabular-nums whitespace-nowrap">{formatDate(a.last_event_date)}</td>
                   <td className="px-4 py-3 text-zinc-500 text-xs max-w-[140px] truncate">{a.resume_title ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3 justify-end">
