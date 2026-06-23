@@ -90,6 +90,18 @@ export async function upsertFolioOnLogin(
   `
   if (existing.length > 0) return existing[0] as Folio
 
+  // Auth provider migration: if owner_id changed (e.g. LinkedIn legacy ID → OIDC sub → OAuth UUID),
+  // find by email and migrate owner_id so the existing folio is preserved.
+  const byEmail = await sql`
+    SELECT id, owner_id, slug, name, email, is_public, studio_is_public, studio_full_access, token_budget, tokens_used, cal_username, headshot_url, headshot_visible, image_gen_quota, image_gen_used, image_gen_reset_at, created_at
+    FROM folios WHERE email = ${email} LIMIT 1
+  `
+  if (byEmail.length > 0) {
+    await sql`UPDATE folios SET owner_id = ${ownerId} WHERE email = ${email}`
+    console.log('[folio-ai owner-id-migrated]', JSON.stringify({ email, old: (byEmail[0] as Folio).owner_id, new: ownerId }))
+    return { ...(byEmail[0] as Folio), owner_id: ownerId }
+  }
+
   const slug = await uniqueSlug(nameToSlug(name))
   // Creator's folio (matched by OWNER_EMAIL) starts public; everyone else starts private
   const isCreator = email === (process.env.OWNER_EMAIL ?? '')
