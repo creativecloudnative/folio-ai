@@ -105,7 +105,7 @@ export default function AdminFolioTable({ folios: initial }: { folios: Folio[] }
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="rounded-xl border border-zinc-800 overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-zinc-900/60 border-b border-zinc-800">
           <tr>
