@@ -1,7 +1,8 @@
 import { auth } from '@/auth'
 import { put } from '@vercel/blob'
-import { setHeadshotUrl } from '@/lib/folios'
+import { setHeadshotUrl, getFolioByOwnerId } from '@/lib/folios'
 import { moderateImage } from '@/lib/image-moderation'
+import { headshotKey, pruneHeadshotHistory } from '@/lib/headshot-storage'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,12 +31,13 @@ export async function POST() {
     }
 
     const ext = contentType.includes('png') ? 'png' : 'jpg'
-    const { url } = await put(`headshots/${session.user.id}/headshot.${ext}`, buffer, {
+    const { url } = await put(headshotKey(session.user.id, ext), buffer, {
       access: 'public',
       contentType,
     })
-
+    const folio = await getFolioByOwnerId(session.user.id)
     await setHeadshotUrl(session.user.id, url)
+    pruneHeadshotHistory(session.user.id, folio?.headshot_url ?? null).catch(() => {})
     return Response.json({ ok: true, url })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

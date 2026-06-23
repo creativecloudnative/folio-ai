@@ -12,6 +12,8 @@ type ImageGenBalance = {
 
 type RefPhoto = { url: string; pathname: string }
 
+type HistoryEntry = { url: string; pathname: string; uploadedAt: string; isActive: boolean }
+
 type Style = 'professional' | 'bw' | 'illustrated'
 
 const STYLES: { value: Style; label: string; description: string }[] = [
@@ -30,6 +32,11 @@ export default function ProfileTab() {
   const [balance, setBalance]           = useState<ImageGenBalance | null>(null)
   const [loading, setLoading]           = useState(true)
   const [selectedStyle, setSelectedStyle] = useState<Style>('professional')
+
+  const [history, setHistory]           = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [restoringUrl, setRestoringUrl] = useState<string | null>(null)
+  const [deletingUrl, setDeletingUrl]   = useState<string | null>(null)
 
   const [refs, setRefs]                 = useState<RefPhoto[]>([])
   const [refsLoading, setRefsLoading]   = useState(true)
@@ -60,6 +67,11 @@ export default function ProfileTab() {
       .then((r) => r.json())
       .then((data) => setRefs(data.refs ?? []))
       .finally(() => setRefsLoading(false))
+
+    fetch('/api/studio/headshot/history')
+      .then((r) => r.json())
+      .then((data) => setHistory(data.history ?? []))
+      .finally(() => setHistoryLoading(false))
   }, [])
 
   async function toggleVisible() {
@@ -70,6 +82,11 @@ export default function ProfileTab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ headshot_visible: next }),
     })
+  }
+
+  async function refreshHistory() {
+    const data = await fetch('/api/studio/headshot/history').then((r) => r.json())
+    setHistory(data.history ?? [])
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -85,6 +102,7 @@ export default function ProfileTab() {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
       setGeneratedUrl(null)
+      refreshHistory()
     } else {
       setError(data.error ?? 'Upload failed')
     }
@@ -101,10 +119,38 @@ export default function ProfileTab() {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
       setGeneratedUrl(null)
+      refreshHistory()
     } else {
       setError(data.error ?? 'Import failed')
     }
     setImportBusy(false)
+  }
+
+  async function handleRestoreHistory(entry: HistoryEntry) {
+    setRestoringUrl(entry.url)
+    const res = await fetch('/api/studio/headshot/history', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: entry.url }),
+    })
+    if (res.ok) {
+      setImageBust((n) => n + 1)
+      setHistory((prev) => prev.map((h) => ({ ...h, isActive: h.url === entry.url })))
+    }
+    setRestoringUrl(null)
+  }
+
+  async function handleDeleteHistory(entry: HistoryEntry) {
+    setDeletingUrl(entry.url)
+    const res = await fetch('/api/studio/headshot/history', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: entry.url }),
+    })
+    if (res.ok) {
+      setHistory((prev) => prev.filter((h) => h.url !== entry.url))
+    }
+    setDeletingUrl(null)
   }
 
   async function handleAddRef(e: React.ChangeEvent<HTMLInputElement>) {
@@ -171,6 +217,7 @@ export default function ProfileTab() {
       setHasHeadshot(true)
       setImageBust((n) => n + 1)
       setGeneratedUrl(null)
+      refreshHistory()
     } else {
       setError(data.error ?? 'Save failed')
     }
@@ -226,6 +273,53 @@ export default function ProfileTab() {
           </div>
         </div>
       </section>
+
+      {/* Headshot history */}
+      {(historyLoading || history.length > 0) && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-300">History</h3>
+          {historyLoading ? (
+            <p className="text-[11px] text-zinc-600">Loading…</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {history.map((entry) => (
+                <div
+                  key={entry.url}
+                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 group shrink-0 transition-colors ${
+                    entry.isActive ? 'border-indigo-500' : 'border-zinc-700'
+                  }`}
+                >
+                  <Image src={entry.url} alt="Past headshot" fill className="object-cover" unoptimized />
+                  {entry.isActive ? (
+                    <div className="absolute inset-0 bg-indigo-500/20 flex items-end justify-center pb-1">
+                      <span className="text-[9px] text-indigo-300 font-medium leading-none">active</span>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                      <button
+                        onClick={() => handleRestoreHistory(entry)}
+                        disabled={restoringUrl === entry.url}
+                        className="text-[10px] text-white font-medium hover:text-indigo-300 transition-colors leading-none"
+                        title="Restore"
+                      >
+                        {restoringUrl === entry.url ? '…' : 'Restore'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteHistory(entry)}
+                        disabled={deletingUrl === entry.url}
+                        className="text-[10px] text-zinc-400 hover:text-red-400 transition-colors leading-none"
+                        title="Delete"
+                      >
+                        {deletingUrl === entry.url ? '…' : 'Delete'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Set headshot */}
       <section className="space-y-3">

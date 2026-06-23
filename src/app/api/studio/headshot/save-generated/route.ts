@@ -1,17 +1,14 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { put } from '@vercel/blob'
-import { setHeadshotUrl } from '@/lib/folios'
+import { setHeadshotUrl, getFolioByOwnerId } from '@/lib/folios'
+import { headshotKey, pruneHeadshotHistory } from '@/lib/headshot-storage'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return Response.json({ error: 'signin_required' }, { status: 401 })
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json({ error: 'Image storage is not configured on this server' }, { status: 503 })
-  }
 
   let body: { dataUrl: string }
   try { body = await req.json() } catch { return Response.json({ error: 'invalid_json' }, { status: 400 }) }
@@ -23,12 +20,14 @@ export async function POST(req: NextRequest) {
     const base64 = body.dataUrl.split(',')[1]
     const buffer = Buffer.from(base64, 'base64')
 
-    const { url } = await put(`headshots/${session.user.id}/headshot.png`, buffer, {
+    const { url } = await put(headshotKey(session.user.id, 'png'), buffer, {
       access: 'public',
       contentType: 'image/png',
     })
 
+    const folio = await getFolioByOwnerId(session.user.id)
     await setHeadshotUrl(session.user.id, url)
+    pruneHeadshotHistory(session.user.id, folio?.headshot_url ?? null).catch(() => {})
     return Response.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
