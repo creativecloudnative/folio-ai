@@ -226,15 +226,15 @@ The studio includes a full job search management system that the agent actively 
 
 **Evidence** attaches supporting artifacts to an application — take-home submissions, written responses, challenge code. Stored and linked by application so everything for a given role stays together.
 
-**Resumes** are AI-generated against a specific job description, using the owner's portfolio documents as source material. The system embeds the job description, retrieves relevant experience chunks from the vector store, and synthesises a tailored resume in Markdown. Four templates are available (Modern, Classic, Compact, Minimal) with a split-pane editor and print-to-PDF export.
+**Resumes** are AI-generated against a specific job description, using the owner's portfolio documents as source material. The system retrieves relevant experience chunks from the vector store and synthesises a tailored resume in Markdown. Four templates are available (Modern, Classic, Compact, Minimal) with a split-pane editor and print-to-PDF export.
 
 \`\`\`mermaid
 flowchart LR
-  A[Job description] --> B[Fetch & parse JD]
-  B --> C[search_portfolio\nretrieve owner context]
-  C --> D[Claude\nsynthesize tailored resume]
-  D --> E[Markdown resume\nsaved to DB]
-  E --> F[Resume Editor\nsplit-pane + print/PDF]
+  A[Job description] --> B[Fetch and parse JD]
+  B --> C[search_portfolio retrieve owner context]
+  C --> D[Claude synthesize tailored resume]
+  D --> E[Markdown resume saved to DB]
+  E --> F[Resume Editor split-pane and print/PDF]
 \`\`\`
 
 ### Visitor Memory
