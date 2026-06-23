@@ -58,6 +58,7 @@ async function ensureTable() {
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_quota INT NOT NULL DEFAULT 3`
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_used INT NOT NULL DEFAULT 0`
   await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS image_gen_reset_at TIMESTAMPTZ NOT NULL DEFAULT (date_trunc('month', now()) + interval '1 month')`
+  await sql`ALTER TABLE folios ADD COLUMN IF NOT EXISTS studio_full_access BOOLEAN NOT NULL DEFAULT FALSE`
 }
 
 export function nameToSlug(name: string): string {
