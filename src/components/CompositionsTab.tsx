@@ -220,6 +220,21 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
     if (selected?.id === id) setSelected(null)
   }
 
+  async function renameComposition(newTitle: string) {
+    if (!selected) return
+    const trimmed = newTitle.trim()
+    if (!trimmed || trimmed === selected.title) return
+    const res = await fetch(`/api/studio/compositions/${selected.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: trimmed }),
+    })
+    if (res.ok) {
+      setSelected((prev) => prev ? { ...prev, title: trimmed } : prev)
+      setCompositions((prev) => prev.map((c) => c.id === selected.id ? { ...c, title: trimmed } : c))
+    }
+  }
+
   function addDocumentItem(sectionLabel: string) {
     if (!selected) return
     setPendingSections((prev) => prev.filter((l) => l !== sectionLabel))
@@ -503,9 +518,19 @@ export default function CompositionsTab({ folioSlug, isViewer = false }: { folio
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-700 shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-zinc-200">{selected.title}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${typeBadge(selected.type)}`}>{selected.type}</span>
+            <div className="flex items-center gap-3 min-w-0">
+              {isViewer || selected.type === 'folio' ? (
+                <span className="text-sm font-medium text-zinc-200 truncate">{selected.title}</span>
+              ) : (
+                <input
+                  key={selected.id}
+                  defaultValue={selected.title}
+                  onBlur={(e) => renameComposition(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                  className="text-sm font-medium text-zinc-200 bg-transparent border-b border-transparent hover:border-zinc-600 focus:border-indigo-500 focus:outline-none px-1 min-w-[8rem] max-w-xs"
+                />
+              )}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0 ${typeBadge(selected.type)}`}>{selected.type}</span>
             </div>
             <div className="flex items-center gap-2">
               {!isViewer && publishError && <span className="text-xs text-red-400">{publishError}</span>}

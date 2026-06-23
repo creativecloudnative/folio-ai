@@ -143,8 +143,11 @@ async function buildSections(
           if (rows[0]?.content) excerpt = extractExcerpt(rows[0].content as string)
         } catch { /* no compiled doc yet */ }
 
-        // section_label on the folio item IS the section title; fall back to type name
-        const sectionLabel = item.section_label?.trim() || comp.type_name
+        // Use section_label if it was explicitly set to something other than the composition title.
+        // When seeded incorrectly (section_label === comp.title), group by type_name instead.
+        const sectionLabel = (item.section_label?.trim() && item.section_label.trim() !== comp.title)
+          ? item.section_label.trim()
+          : comp.type_name
 
         return {
           sectionLabel,

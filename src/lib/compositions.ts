@@ -374,7 +374,7 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
 
     // Add existing non-folio compositions as refs, sorted by type position then title
     const comps = await sql`
-      SELECT c.id, c.title, ct.position AS type_position
+      SELECT c.id, c.title, ct.name AS type_name, ct.position AS type_position
       FROM compositions c
       JOIN composition_types ct ON ct.slug = c.type AND ct.owner_id = c.owner_id
       WHERE c.owner_id = ${ownerId} AND c.type != 'folio'
@@ -383,7 +383,7 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
     for (const comp of comps) {
       await sql`
         INSERT INTO composition_items (composition_id, ref_composition_id, section_label, position)
-        VALUES (${folioId}, ${comp.id as string}, ${comp.title as string}, ${pos++})
+        VALUES (${folioId}, ${comp.id as string}, ${comp.type_name as string}, ${pos++})
       `
     }
     } // end existingItems.length === 0
