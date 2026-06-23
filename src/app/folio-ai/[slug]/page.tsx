@@ -99,16 +99,20 @@ function compositionViewerHref(folioSlug: string, comp: Pick<Composition, 'type'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-async function fetchIntroExcerpt(ownerId: string): Promise<string> {
+// Hero content comes from the folio composition's 'hero' slot, not auto-fetched by type
+async function fetchHeroContent(ownerId: string): Promise<string> {
   try {
-    // Prefer a dedicated greeting document; fall back to bio
+    const folioComp = await getFolioComposition(ownerId)
+    if (!folioComp) return ''
+    const folioItems = await getCompositionItems(folioComp.id)
+    const heroItem = folioItems.find((it) => it.section_label === 'hero' && it.document_source)
+    if (!heroItem?.document_source) return ''
     const rows = await sql`
       SELECT content FROM documents
-      WHERE owner_id = ${ownerId} AND type IN ('greeting', 'bio')
-      ORDER BY CASE type WHEN 'greeting' THEN 0 ELSE 1 END, created_at DESC
-      LIMIT 1
+      WHERE owner_id = ${ownerId} AND source = ${heroItem.document_source}
+      ORDER BY created_at DESC LIMIT 1
     `
-    return rows[0]?.content ? extractExcerpt(rows[0].content as string, 320) : ''
+    return rows[0]?.content ? extractProseBlock(rows[0].content as string, 400) : ''
   } catch { return '' }
 }
 
@@ -134,7 +138,10 @@ async function buildSections(
   }
 
   const items = await getCompositionItems(folioComp.id)
-  const contentItems = items.filter((it) => it.document_source || it.ref_composition_id)
+  // 'hero' items feed the folio hero slot, not the sections
+  const contentItems = items.filter((it) =>
+    (it.document_source || it.ref_composition_id) && it.section_label !== 'hero'
+  )
 
   if (contentItems.length === 0) {
     if (!isOwner) return []
@@ -380,9 +387,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
 
   if (!folio.is_public && !isOwner && !isInvited) notFound()
 
-  const [sections, bioExcerpt, videos, viewerFolio] = await Promise.all([
+  const [sections, heroContent, videos, viewerFolio] = await Promise.all([
     buildSections(folio.owner_id, slug, isOwner),
-    fetchIntroExcerpt(folio.owner_id),
+    fetchHeroContent(folio.owner_id),
     getFolioVideos(folio.id),
     (!isOwner && session?.user?.id) ? getFolioByOwnerId(session.user.id) : Promise.resolve(null),
   ])
@@ -484,9 +491,9 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6">
             {folio.name}
           </h1>
-          {bioExcerpt ? (
+          {heroContent ? (
             <p className="text-lg md:text-xl text-zinc-400 max-w-2xl leading-relaxed mb-10">
-              {bioExcerpt}
+              {heroContent}
             </p>
           ) : (
             <p className="text-lg text-zinc-500 max-w-xl mb-10">
