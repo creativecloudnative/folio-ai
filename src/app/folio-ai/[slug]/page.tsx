@@ -112,7 +112,13 @@ async function fetchHeroContent(ownerId: string): Promise<string> {
       WHERE owner_id = ${ownerId} AND source = ${heroItem.document_source}
       ORDER BY created_at DESC LIMIT 1
     `
-    return rows[0]?.content ? extractProseBlock(rows[0].content as string, 400) : ''
+    if (!rows[0]?.content) return ''
+    // Return full content with headings and code fences stripped — no length cap
+    return (rows[0].content as string)
+      .split('\n')
+      .filter((l) => !l.startsWith('#') && !l.startsWith('```') && l.trim() !== '---')
+      .join('\n')
+      .trim()
   } catch { return '' }
 }
 
@@ -492,9 +498,11 @@ export default async function FolioPage({ params }: { params: Promise<{ slug: st
             {folio.name}
           </h1>
           {heroContent ? (
-            <p className="text-lg md:text-xl text-zinc-400 max-w-2xl leading-relaxed mb-10">
-              {heroContent}
-            </p>
+            <div className="text-lg md:text-xl text-zinc-400 max-w-2xl leading-relaxed mb-10 space-y-4">
+              {heroContent.split(/\n\n+/).filter(Boolean).map((para, i) => (
+                <p key={i}>{para.trim()}</p>
+              ))}
+            </div>
           ) : (
             <p className="text-lg text-zinc-500 max-w-xl mb-10">
               Ask the assistant anything about my work and experience.
