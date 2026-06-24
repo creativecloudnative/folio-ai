@@ -7,12 +7,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params
   const folio = await getFolioBySlug(slug)
 
-  if (!folio?.headshot_url) return new Response(null, { status: 404 })
-  if (!folio.is_public || !folio.headshot_visible) return new Response(null, { status: 404 })
+  if (!folio?.headshot_url || !folio.headshot_visible) return new Response(null, { status: 404 })
 
-  const res = await fetch(folio.headshot_url, {
-    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-  })
+  // Public blob URLs are CDN-served — no auth header needed or accepted
+  const res = await fetch(folio.headshot_url)
   if (!res.ok) return new Response(null, { status: 502 })
 
   return new Response(res.body, {
