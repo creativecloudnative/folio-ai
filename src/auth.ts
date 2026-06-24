@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import LinkedIn from 'next-auth/providers/linkedin'
 import Credentials from 'next-auth/providers/credentials'
-import { upsertFolioOnLogin } from '@/lib/folios'
+import { upsertFolioOnLogin, getFolioByOwnerId } from '@/lib/folios'
 import { isAdminEmail } from '@/lib/admin'
 
 const devProvider = process.env.NODE_ENV === 'development'
@@ -86,6 +86,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             console.error('[folio-ai jwt-dev-error]', err instanceof Error ? err.message : err)
           }
         }
+      }
+
+      // Backfill folioSlug for sessions created before it was added to the token
+      if (!token.folioSlug && token.sub && !isAdminEmail(token.email as string)) {
+        try {
+          const folio = await getFolioByOwnerId(token.sub as string)
+          if (folio) token.folioSlug = folio.slug
+        } catch { /* ignore */ }
       }
 
       return token
