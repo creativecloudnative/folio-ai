@@ -110,11 +110,16 @@ async function fetchHeroContent(ownerId: string): Promise<string> {
     const rows = await sql`
       SELECT content FROM documents
       WHERE owner_id = ${ownerId} AND source = ${heroItem.document_source}
-      ORDER BY created_at DESC LIMIT 1
+      ORDER BY created_at ASC
     `
-    if (!rows[0]?.content) return ''
-    // Return full content with headings and code fences stripped — no length cap
-    return (rows[0].content as string)
+    if (rows.length === 0) return ''
+    // Combine all saves (oldest first) — bio is often written across multiple inserts
+    const combined = rows
+      .map((r) => (r.content as string).trim())
+      .filter(Boolean)
+      .join('\n\n')
+    // Strip markdown headings and code fences; preserve paragraph breaks
+    return combined
       .split('\n')
       .filter((l) => !l.startsWith('#') && !l.startsWith('```') && l.trim() !== '---')
       .join('\n')
