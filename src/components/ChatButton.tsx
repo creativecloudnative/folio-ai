@@ -158,6 +158,7 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
   const [attached, setAttached] = useState<AttachedFile | null>(null)
   const [isExtracting, setIsExtracting] = useState(false)
   const [attachError, setAttachError] = useState<string | null>(null)
+  const [anonBudget, setAnonBudget] = useState<{ remaining: number; budget: number } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -257,6 +258,12 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
         body: JSON.stringify({ messages: apiMessages }),
       })
 
+      if (res.status === 402) {
+        setAnonBudget((prev) => ({ remaining: 0, budget: prev?.budget ?? 10_000 }))
+        setMessages((prev) => prev.slice(0, -1))
+        return
+      }
+
       if (!res.ok || !res.body) {
         throw new Error(`HTTP ${res.status}`)
       }
@@ -287,6 +294,9 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
           }
           if (parsed?.error) {
             throw new Error(String(parsed.error))
+          }
+          if (parsed?.budget) {
+            setAnonBudget(parsed.budget as { remaining: number; budget: number })
           }
           if (parsed?.delta) {
             assistantText += parsed.delta as string
@@ -408,8 +418,8 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
               {/* ── Left panel: chat ── */}
               <div className="flex flex-col overflow-hidden" style={{ width: '50%' }}>
 
-          {/* Sign-in gate */}
-          {!session?.user ? (
+          {/* Budget-exhausted gate — only shown to anon users who've used their trial */}
+          {!session?.user && anonBudget?.remaining === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4 text-center">
               <div className="w-10 h-10 rounded-full bg-indigo-900/60 border border-indigo-700 flex items-center justify-center">
                 <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -417,8 +427,8 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-200 mb-1">{config.agent.greeting}</p>
-                <p className="text-xs text-slate-500">Sign in with LinkedIn to start chatting.</p>
+                <p className="text-sm font-medium text-slate-200 mb-1">You&apos;ve used your free trial</p>
+                <p className="text-xs text-slate-500">Sign in with LinkedIn to keep chatting — it&apos;s free.</p>
               </div>
               <button
                 onClick={() => signIn('linkedin', { callbackUrl: window.location.href })}
@@ -476,6 +486,23 @@ export default function ChatButton({ apiPath = '/api/chat', capabilitiesUrl }: C
             ))}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Anon trial nudge */}
+          {!session?.user && (
+            <div className="shrink-0 px-4 py-2 border-t border-slate-700/50 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                {anonBudget
+                  ? `${Math.round((anonBudget.remaining / anonBudget.budget) * 100)}% free trial left`
+                  : 'Free trial'}
+              </span>
+              <button
+                onClick={() => signIn('linkedin', { callbackUrl: window.location.href })}
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Sign in for unlimited →
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <div className="shrink-0 border-t border-slate-700">
