@@ -6,6 +6,7 @@ import { buildSystemPrompt } from '@/agent/prompts/system'
 import { tools } from '@/agent/tools/definitions'
 import { executeTool } from '@/agent/tools/handlers'
 import { retrieveRelevant, fetchMemoriesForVisitor, fetchBaselineResume, fetchConnectionForVisitor, formatChunksForPrompt } from '@/lib/rag'
+import { getOrCreateAnonSession, consumeAnonTokens } from '@/lib/anon-session'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,8 +54,21 @@ export async function POST(req: NextRequest) {
   }
 
   const session = await auth()
+
+  // Anonymous session: cookie-based token budget instead of hard auth gate
+  let anonSessionId: string | null = null
+  let isNewAnonSession = false
   if (!session?.user) {
-    return Response.json({ error: 'signin_required' }, { status: 401 })
+    anonSessionId = req.cookies.get('anon_session_id')?.value ?? null
+    if (!anonSessionId) {
+      anonSessionId = crypto.randomUUID()
+      isNewAnonSession = true
+    }
+    const anonSession = await getOrCreateAnonSession(anonSessionId)
+    const remaining = Math.max(0, anonSession.token_budget - anonSession.tokens_used)
+    if (remaining <= 0) {
+      return Response.json({ error: 'budget_exhausted' }, { status: 402 })
+    }
   }
 
   let body: { messages: Anthropic.MessageParam[] }
@@ -79,9 +93,9 @@ export async function POST(req: NextRequest) {
 
   const [chunks, memories, baseline, connection] = await Promise.all([
     query ? retrieveRelevant(query, ownerId) : Promise.resolve([]),
-    fetchMemoriesForVisitor(session.user?.email ?? null, null, ownerId),
+    fetchMemoriesForVisitor(session?.user?.email ?? null, null, ownerId),
     fetchBaselineResume(ownerId),
-    fetchConnectionForVisitor(session.user?.email ?? null, ownerId),
+    fetchConnectionForVisitor(session?.user?.email ?? null, ownerId),
   ])
 
   const relevantContext = formatChunksForPrompt(chunks)
@@ -104,9 +118,10 @@ export async function POST(req: NextRequest) {
       : connection.content
   }
 
-  const system = buildSystemPrompt(session.user?.name, relevantContext, visitorMemories || undefined, baselineResume, visitorConnection)
+  const system = buildSystemPrompt(session?.user?.name, relevantContext, visitorMemories || undefined, baselineResume, visitorConnection)
 
   const encoder = new TextEncoder()
+  let totalTokensUsed = 0
 
   async function* generateStream() {
     for (let iter = 0; iter < 5; iter++) {
@@ -128,6 +143,7 @@ export async function POST(req: NextRequest) {
       }
 
       const finalMsg = await stream.finalMessage()
+      totalTokensUsed += finalMsg.usage.input_tokens + finalMsg.usage.output_tokens
 
       if (finalMsg.stop_reason === 'end_turn') break
 
@@ -164,6 +180,11 @@ export async function POST(req: NextRequest) {
       break
     }
 
+    if (anonSessionId) {
+      const balance = await consumeAnonTokens(anonSessionId, totalTokensUsed)
+      yield `data: ${JSON.stringify({ budget: balance })}\n\n`
+    }
+
     yield 'data: [DONE]\n\n'
   }
 
@@ -185,11 +206,15 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return new Response(responseStream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  })
+  const responseHeaders: Record<string, string> = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  }
+  if (isNewAnonSession && anonSessionId) {
+    responseHeaders['Set-Cookie'] =
+      `anon_session_id=${anonSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`
+  }
+
+  return new Response(responseStream, { headers: responseHeaders })
 }
