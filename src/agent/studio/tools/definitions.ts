@@ -233,6 +233,42 @@ export const studioTools: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'create_job_application',
+    description:
+      'Create a new job application to track. Use when the owner mentions they applied to a role or wants to start tracking an application.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        company: {
+          type: 'string',
+          description: 'Company name',
+        },
+        role: {
+          type: 'string',
+          description: 'Job title or role',
+        },
+        job_url: {
+          type: 'string',
+          description: 'URL of the job posting, if known',
+        },
+        status: {
+          type: 'string',
+          enum: ['applied', 'screening', 'interviewing', 'offer', 'accepted', 'rejected', 'withdrawn', 'ghosted'],
+          description: 'Current status. Defaults to "applied" if omitted.',
+        },
+        applied_at: {
+          type: 'string',
+          description: 'ISO 8601 date the application was submitted, e.g. "2026-06-29". Omit if unknown.',
+        },
+        notes: {
+          type: 'string',
+          description: 'Any initial notes about the role or company',
+        },
+      },
+      required: ['company', 'role'],
+    },
+  },
+  {
     name: 'list_job_applications',
     description:
       'List the owner\'s job applications. Returns company, role, status, applied date, and linked resume for each. Optionally filter by status. This data is private — never share with public visitors.',
