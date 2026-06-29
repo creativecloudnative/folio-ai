@@ -1,5 +1,5 @@
 import { sql } from '@/lib/db'
-import { listApplicationsForChat, getApplicationWithEvents, createEvent, updateApplication, type EventType, type ApplicationStatus } from '@/lib/job-applications'
+import { listApplicationsForChat, getApplicationWithEvents, createApplication, createEvent, updateApplication, type EventType, type ApplicationStatus } from '@/lib/job-applications'
 import { ingestDocument } from '@/lib/ingest'
 import { retrieveRelevant, formatChunksForPrompt } from '@/lib/rag'
 import { getCompositions, getCompositionItems, seedCompositionsFromDocuments } from '@/lib/compositions'
@@ -303,6 +303,20 @@ export async function executeStudioTool(
       )
 
       return `Diagram "${title}" saved (source: ${source}, ${chunks} chunk${chunks !== 1 ? 's' : ''}). It can be referenced in case studies and ADRs.`
+    }
+
+    case 'create_job_application': {
+      const application = await createApplication({
+        ownerId,
+        company:   input.company as string,
+        role:      input.role as string,
+        jobUrl:    (input.job_url as string | undefined) ?? null,
+        resumeId:  null,
+        status:    ((input.status as ApplicationStatus | undefined) ?? 'applied'),
+        appliedAt: (input.applied_at as string | undefined) ?? null,
+        notes:     (input.notes as string | undefined) ?? '',
+      })
+      return `Application created (id: ${application.id}): ${application.role} @ ${application.company} — Status: ${application.status}.`
     }
 
     case 'list_job_applications': {
