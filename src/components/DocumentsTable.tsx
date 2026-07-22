@@ -29,6 +29,7 @@ const TYPE_COLORS: Record<string, string> = {
   'diagram':      'bg-cyan-900/50 text-cyan-300 border-cyan-700/50',
   'adr':          'bg-orange-900/50 text-orange-300 border-orange-700/50',
   'folio':        'bg-indigo-900/50 text-indigo-300 border-indigo-700/50',
+  'code-demo':    'bg-lime-900/50 text-lime-300 border-lime-700/50',
 }
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: 'asc' | 'desc' }) {
