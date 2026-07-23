@@ -48,6 +48,7 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
   const [createError, setCreateError] = useState('')
 
   const [pythonCode, setPythonCode] = useState('')
+  const [pythonDeps, setPythonDeps] = useState<Record<string, string> | undefined>(undefined)
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
@@ -84,6 +85,7 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
       if (!parsed) throw new Error('Could not parse code-demo content')
       setSpec(parsed)
       setPythonCode(parsed.files[PYTHON_ENTRY] ?? Object.values(parsed.files)[0] ?? '')
+      setPythonDeps(parsed.dependencies)
     } catch (err) {
       setDocError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -112,6 +114,7 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
     setEditTitle(demo.title)
     setSpec(defaultSpec)
     setPythonCode(defaultSpec.files[PYTHON_ENTRY] ?? '')
+    setPythonDeps(defaultSpec.dependencies)
   }
 
   async function deleteDemo(demo: Demo) {
@@ -129,7 +132,7 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
     setSaveError('')
     try {
       const nextSpec: CodeDemoSpec = spec.template === 'python'
-        ? { ...spec, files: { [PYTHON_ENTRY]: pythonCode } }
+        ? { ...spec, files: { [PYTHON_ENTRY]: pythonCode }, dependencies: pythonDeps }
         : { ...spec, files: filesRef.current }
       const content = buildCodeDemoMarkdown(editTitle, nextSpec)
       const res = await fetch(`/api/studio/documents/content?source=${encodeURIComponent(selected.source)}`, {
@@ -250,7 +253,13 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
             {docError && <div className="p-4 text-xs text-red-400">{docError}</div>}
             {spec && spec.template === 'python' && (
               <div className="p-4">
-                <PythonDemoBlock code={pythonCode} onChange={isViewer ? undefined : setPythonCode} />
+                <PythonDemoBlock
+                  key={selected.source}
+                  code={pythonCode}
+                  onChange={isViewer ? undefined : setPythonCode}
+                  dependencies={pythonDeps}
+                  onDependenciesChange={isViewer ? undefined : setPythonDeps}
+                />
               </div>
             )}
             {spec && spec.template !== 'python' && (

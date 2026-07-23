@@ -42,3 +42,24 @@ export const DEFAULT_PYTHON_SPEC: CodeDemoSpec = {
     [PYTHON_ENTRY]: 'print("Hello, world!")\n',
   },
 }
+
+// Python deps reuse the same {name: version} shape as Sandpack's npm deps —
+// version '' means "latest". UI round-trips this as a comma-separated
+// "name==version" list, matching pip's requirement-specifier syntax.
+export function dependenciesToText(deps?: Record<string, string>): string {
+  if (!deps) return ''
+  return Object.entries(deps)
+    .map(([name, version]) => (version ? `${name}==${version}` : name))
+    .join(', ')
+}
+
+export function textToDependencies(text: string): Record<string, string> | undefined {
+  const specs = text.split(',').map((s) => s.trim()).filter(Boolean)
+  if (specs.length === 0) return undefined
+  const deps: Record<string, string> = {}
+  for (const spec of specs) {
+    const [name, version] = spec.split('==').map((s) => s.trim())
+    if (name) deps[name] = version ?? ''
+  }
+  return deps
+}

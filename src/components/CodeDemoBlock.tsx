@@ -37,7 +37,7 @@ export default function CodeDemoBlock({ spec }: Props) {
     const code = parsed.files[PYTHON_ENTRY] ?? Object.values(parsed.files)[0]
     return (
       <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Loading Python demo…</div>}>
-        <PythonDemoBlock code={code} />
+        <PythonDemoBlock code={code} dependencies={parsed.dependencies} />
       </Suspense>
     )
   }
