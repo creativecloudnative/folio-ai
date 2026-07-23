@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 
 const MermaidBlock = lazy(() => import('./MermaidBlock'))
+const CodeDemoBlock = lazy(() => import('./CodeDemoBlock'))
 
 const mdComponents: Components = {
   h1: ({ children }) => <h1 className="text-3xl font-bold text-white mt-10 mb-4 leading-tight">{children}</h1>,
@@ -47,6 +48,13 @@ const mdComponents: Components = {
       return (
         <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Rendering diagram…</div>}>
           <MermaidBlock code={String(children).trim()} />
+        </Suspense>
+      )
+    }
+    if (lang === 'code-demo') {
+      return (
+        <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Loading live demo…</div>}>
+          <CodeDemoBlock spec={String(children).trim()} />
         </Suspense>
       )
     }

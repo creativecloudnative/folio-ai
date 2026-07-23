@@ -6,6 +6,17 @@
  * This file is safe to commit — it contains no personal data.
  */
 
+const DEFAULT_SITE_URL = 'https://example.com'
+
+function resolveSiteUrl(value: string | undefined): string {
+  if (!value) return DEFAULT_SITE_URL
+  try {
+    return new URL(value).toString().replace(/\/$/, '')
+  } catch {
+    return DEFAULT_SITE_URL
+  }
+}
+
 const config = {
   owner: {
     name:     process.env.OWNER_NAME     ?? 'Your Name',
@@ -20,7 +31,7 @@ const config = {
   site: {
     title:       process.env.SITE_TITLE       ?? 'folio-ai',
     description: process.env.SITE_DESCRIPTION ?? 'AI-native portfolio — architecture case studies and an embedded AI assistant.',
-    url:         process.env.SITE_URL         || 'https://example.com',
+    url:         resolveSiteUrl(process.env.SITE_URL),
   },
 
   agent: {

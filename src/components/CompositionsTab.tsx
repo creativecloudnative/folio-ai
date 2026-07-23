@@ -18,6 +18,7 @@ type DocOption  = { source: string; title: string; type: string }
 const TYPE_COLORS: Record<string, string> = {
   'case-study':   'bg-emerald-900/50 text-emerald-300 border-emerald-700/50',
   'architecture': 'bg-indigo-900/50 text-indigo-300 border-indigo-700/50',
+  'code-demo':    'bg-lime-900/50 text-lime-300 border-lime-700/50',
   'folio':        'bg-violet-900/50 text-violet-300 border-violet-700/50',
 }
 function typeBadge(slug: string) {

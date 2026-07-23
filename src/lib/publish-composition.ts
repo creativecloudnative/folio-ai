@@ -20,10 +20,10 @@ async function compileWithAI(
     ? `You are a technical writer composing a polished case study page in Markdown.
 Tell a clear story: problem, constraints, options considered, the decision, the architecture (Mermaid diagrams inline), and the outcome.
 Use the provided documents as raw material — weave them into a single coherent document.
-Preserve all Mermaid diagram code blocks exactly as-is. Use ## for sections.`
+Preserve all Mermaid diagram code blocks and \`\`\`code-demo blocks exactly as-is, character for character — do not reformat, summarize, or re-indent their contents. Use ## for sections.`
     : `You are a technical writer composing a polished technical document in Markdown.
 Explain the subject clearly: goals, design decisions, components, and how they interact.
-Mermaid diagrams should be preserved inline exactly as-is. Use ## for sections.`
+Mermaid diagrams and \`\`\`code-demo blocks should be preserved inline exactly as-is, character for character — do not reformat, summarize, or re-indent their contents. Use ## for sections.`
 
   const userPrompt = `Compile the following source documents into a single polished page titled "${title}".
 

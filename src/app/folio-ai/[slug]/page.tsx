@@ -51,6 +51,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   resume: 'Resume',
   'case-study': 'Case Study',
   architecture: 'Architecture',
+  'code-demo': 'Code Demo',
   journal: 'Journal',
   adr: 'ADR',
   diagram: 'Diagram',

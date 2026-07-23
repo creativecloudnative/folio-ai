@@ -79,6 +79,7 @@ async function ensureTables() {
 const BUILT_IN_TYPES = [
   { name: 'Architecture', slug: 'architecture', folio_visible: true, position: 0 },
   { name: 'Case Studies', slug: 'case-study',   folio_visible: true, position: 1 },
+  { name: 'Code Demos',   slug: 'code-demo',    folio_visible: true, position: 2 },
   { name: 'Folio Page',   slug: 'folio',         folio_visible: false, position: 99 },
 ]
 
@@ -302,7 +303,7 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
   const docs = await sql`
     SELECT DISTINCT ON (source) source, title, type
     FROM documents
-    WHERE owner_id = ${ownerId} AND type IN ('case-study', 'architecture')
+    WHERE owner_id = ${ownerId} AND type IN ('case-study', 'architecture', 'code-demo')
     ORDER BY source, created_at DESC
   `
 
@@ -314,6 +315,7 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
     const slug = source
       .replace(/^content\/case-studies\//, '')
       .replace(/^content\/architecture\//, '')
+      .replace(/^content\/code-demo\//, '')
       .replace(/\.md$/, '')
 
     if (!slug) continue
@@ -338,7 +340,7 @@ export async function seedCompositionsFromDocuments(ownerId: string): Promise<vo
     if (created.length === 0) continue
 
     const compositionId = created[0].id as string
-    const defaultLabel  = type === 'case-study' ? 'Case Study' : 'Architecture'
+    const defaultLabel  = type === 'case-study' ? 'Case Study' : type === 'code-demo' ? 'Code Demo' : 'Architecture'
 
     await sql`
       INSERT INTO composition_items (composition_id, document_source, section_label, position)
