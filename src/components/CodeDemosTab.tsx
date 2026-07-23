@@ -10,7 +10,12 @@ import {
   useSandpack,
 } from '@codesandbox/sandpack-react'
 import { zincSandpackTheme } from '@/lib/sandpackTheme'
-import { extractCodeDemoSpec, buildCodeDemoMarkdown, DEFAULT_CODE_DEMO_SPEC, type CodeDemoSpec } from '@/lib/codeDemo'
+import {
+  extractCodeDemoSpec, buildCodeDemoMarkdown,
+  DEFAULT_CODE_DEMO_SPEC, DEFAULT_PYTHON_SPEC, PYTHON_ENTRY,
+  type CodeDemoSpec,
+} from '@/lib/codeDemo'
+import PythonDemoBlock from './PythonDemoBlock'
 
 type Demo = { source: string; title: string; created_at: string }
 
@@ -39,7 +44,10 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
 
   const [creating, setCreating]     = useState(false)
   const [newTitle, setNewTitle]     = useState('')
+  const [newTemplate, setNewTemplate] = useState<'react' | 'python'>('react')
   const [createError, setCreateError] = useState('')
+
+  const [pythonCode, setPythonCode] = useState('')
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
@@ -75,6 +83,7 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
       const parsed = extractCodeDemoSpec(data.content as string)
       if (!parsed) throw new Error('Could not parse code-demo content')
       setSpec(parsed)
+      setPythonCode(parsed.files[PYTHON_ENTRY] ?? Object.values(parsed.files)[0] ?? '')
     } catch (err) {
       setDocError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -86,7 +95,8 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
     const title = newTitle.trim()
     if (!title) { setCreateError('Title required'); return }
     setCreateError('')
-    const content = buildCodeDemoMarkdown(title, DEFAULT_CODE_DEMO_SPEC)
+    const defaultSpec = newTemplate === 'python' ? DEFAULT_PYTHON_SPEC : DEFAULT_CODE_DEMO_SPEC
+    const content = buildCodeDemoMarkdown(title, defaultSpec)
     const res = await fetch('/api/studio/documents/content', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,7 +110,8 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
     setCreating(false)
     setSelected(demo)
     setEditTitle(demo.title)
-    setSpec(DEFAULT_CODE_DEMO_SPEC)
+    setSpec(defaultSpec)
+    setPythonCode(defaultSpec.files[PYTHON_ENTRY] ?? '')
   }
 
   async function deleteDemo(demo: Demo) {
@@ -117,7 +128,9 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
     setSaveState('saving')
     setSaveError('')
     try {
-      const nextSpec: CodeDemoSpec = { ...spec, files: filesRef.current }
+      const nextSpec: CodeDemoSpec = spec.template === 'python'
+        ? { ...spec, files: { [PYTHON_ENTRY]: pythonCode } }
+        : { ...spec, files: filesRef.current }
       const content = buildCodeDemoMarkdown(editTitle, nextSpec)
       const res = await fetch(`/api/studio/documents/content?source=${encodeURIComponent(selected.source)}`, {
         method: 'PATCH',
@@ -164,6 +177,14 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
               placeholder="Demo title"
               className="w-full bg-zinc-800 border border-zinc-600 rounded px-2 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
+            <select
+              value={newTemplate}
+              onChange={(e) => setNewTemplate(e.target.value as 'react' | 'python')}
+              className="w-full bg-zinc-800 border border-zinc-600 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="react">JavaScript / React</option>
+              <option value="python">Python</option>
+            </select>
             {createError && <p className="text-xs text-red-400">{createError}</p>}
             <button onClick={createDemo} className="w-full text-xs py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">Create</button>
           </div>
@@ -224,13 +245,18 @@ export default function CodeDemosTab({ folioSlug, isViewer = false }: { folioSlu
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden overflow-y-auto">
             {docLoading && <div className="flex items-center justify-center h-full text-zinc-500 text-sm">Loading…</div>}
             {docError && <div className="p-4 text-xs text-red-400">{docError}</div>}
-            {spec && (
+            {spec && spec.template === 'python' && (
+              <div className="p-4">
+                <PythonDemoBlock code={pythonCode} onChange={isViewer ? undefined : setPythonCode} />
+              </div>
+            )}
+            {spec && spec.template !== 'python' && (
               <SandpackProvider
                 key={selected.source}
-                template={spec.template ?? 'react'}
+                template={(spec.template as Exclude<CodeDemoSpec['template'], 'python'>) ?? 'react'}
                 theme={zincSandpackTheme}
                 files={spec.files}
                 customSetup={spec.dependencies ? { dependencies: spec.dependencies } : undefined}
