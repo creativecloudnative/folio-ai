@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import StudioChat from './StudioChat'
 import StudioHome from './StudioHome'
 import DocumentsTable from './DocumentsTable'
+import CodeDemosTab from './CodeDemosTab'
 import ConversationHistory, { type StoredConversation } from './ConversationHistory'
 import CompositionsTab from './CompositionsTab'
 import SharingTab from './SharingTab'
@@ -21,7 +22,7 @@ type Tab =
   | 'home'
   | 'dashboard'
   | 'chat' | 'history'
-  | 'documents' | 'compositions' | 'videos'
+  | 'documents' | 'code-demos' | 'compositions' | 'videos'
   | 'resumes' | 'applications' | 'evidence'
   | 'sharing' | 'integrations' | 'profile'
 
@@ -43,6 +44,7 @@ const NAV: NavSection[] = [
     type: 'group', label: 'Content Publishing', ownerOnly: false,
     items: [
       { tab: 'documents',    label: 'Documents' },
+      { tab: 'code-demos',   label: 'Code Demos' },
       { tab: 'compositions', label: 'Folio Layout' },
       { tab: 'videos',       label: 'Videos' },
     ],
@@ -114,6 +116,10 @@ const TAB_META: Record<Tab, { short: string; detail: string }> = {
   documents: {
     short: 'Encoded documents powering semantic search and AI context retrieval.',
     detail: `Every document you save — whether written in Chat or uploaded here — is chunked into overlapping segments, run through an embedding model, and stored as vectors in pgvector. This encoding is what makes semantic search work: the AI can find relevant context even when the query wording differs from the document text. The table shows all encoded chunks grouped by source file. Chunks, type, and creation date are all visible. You can upload new files, toggle published status on portfolio pieces, download raw Markdown, or delete documents to remove them from the context pool entirely.`,
+  },
+  'code-demos': {
+    short: 'Write and run live, editable code demos in a real sandboxed editor.',
+    detail: `A code demo is a multi-file, in-browser sandbox — write JS/React (or any Sandpack-supported template), see it run live in the preview pane, and hit Save. Saved demos are stored as documents like any other artifact: they're available to include as a section in any composition, and once published they render as a live, interactive block on your public folio page, not just a static screenshot.`,
   },
   compositions: {
     short: 'Build and publish pages by combining documents and other compositions.',
@@ -341,6 +347,7 @@ export default function StudioTabs({
             />
           )}
           {active === 'documents'    && <DocumentsTable folioSlug={folioSlug} isViewer={isViewer || !!fullAccessSlug} />}
+          {active === 'code-demos'   && <CodeDemosTab folioSlug={folioSlug} isViewer={isViewer || !!fullAccessSlug} />}
           {active === 'compositions' && <CompositionsTab folioSlug={folioSlug} isViewer={isViewer || !!fullAccessSlug} />}
           {active === 'sharing'      && folioSlug && (
             <SharingTab
