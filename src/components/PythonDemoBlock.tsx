@@ -1,15 +1,22 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { dependenciesToText, textToDependencies } from '@/lib/codeDemo'
 
 // Pinned CDN release — bump deliberately, Pyodide's WASM runtime isn't forward/backward compatible across minors.
 const PYODIDE_VERSION = '0.26.4'
 const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`
 
+type MicropipModule = {
+  install: (specs: string[]) => Promise<void>
+}
+
 type PyodideInterface = {
   setStdout: (opts: { batched: (msg: string) => void }) => void
   setStderr: (opts: { batched: (msg: string) => void }) => void
   runPythonAsync: (code: string) => Promise<unknown>
+  loadPackage: (names: string | string[]) => Promise<void>
+  pyimport: (name: string) => MicropipModule
 }
 
 declare global {
@@ -32,22 +39,31 @@ function getPyodide(): Promise<PyodideInterface> {
           document.head.appendChild(script)
         })
       }
-      return window.loadPyodide!({ indexURL: PYODIDE_INDEX_URL })
+      const pyodide = await window.loadPyodide!({ indexURL: PYODIDE_INDEX_URL })
+      await pyodide.loadPackage('micropip')
+      return pyodide
     })()
   }
   return pyodidePromise
 }
 
-type Props = {
-  code: string
-  onChange?: (code: string) => void  // presence of onChange makes the editor writable
+function depsToSpecs(deps?: Record<string, string>): string[] {
+  return Object.entries(deps ?? {}).map(([name, version]) => (version ? `${name}==${version}` : name))
 }
 
-export default function PythonDemoBlock({ code, onChange }: Props) {
+type Props = {
+  code: string
+  onChange?: (code: string) => void  // presence of onChange makes the code editable
+  dependencies?: Record<string, string>
+  onDependenciesChange?: (deps: Record<string, string> | undefined) => void  // presence makes deps editable
+}
+
+export default function PythonDemoBlock({ code, onChange, dependencies, onDependenciesChange }: Props) {
   const [output, setOutput] = useState<string[]>([])
   const [running, setRunning] = useState(false)
-  const [loadingRuntime, setLoadingRuntime] = useState(false)
+  const [stage, setStage] = useState<'idle' | 'runtime' | 'packages' | 'running'>('idle')
   const [error, setError] = useState('')
+  const [depsText, setDepsText] = useState(() => dependenciesToText(dependencies))
   const outputRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -60,21 +76,36 @@ export default function PythonDemoBlock({ code, onChange }: Props) {
     setOutput([])
     try {
       const alreadyLoaded = !!pyodidePromise
-      if (!alreadyLoaded) setLoadingRuntime(true)
+      setStage(alreadyLoaded ? 'packages' : 'runtime')
       const pyodide = await getPyodide()
-      setLoadingRuntime(false)
       pyodide.setStdout({ batched: (msg) => setOutput((prev) => [...prev, msg]) })
       pyodide.setStderr({ batched: (msg) => setOutput((prev) => [...prev, msg]) })
+
+      const specs = depsToSpecs(dependencies)
+      if (specs.length > 0) {
+        setStage('packages')
+        const micropip = pyodide.pyimport('micropip')
+        await micropip.install(specs)
+      }
+
+      setStage('running')
       await pyodide.runPythonAsync(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setRunning(false)
-      setLoadingRuntime(false)
+      setStage('idle')
     }
-  }, [code])
+  }, [code, dependencies])
 
   const editable = !!onChange
+  const depsEditable = !!onDependenciesChange
+
+  function commitDeps() {
+    onDependenciesChange?.(textToDependencies(depsText))
+  }
+
+  const runLabel = stage === 'runtime' ? 'Loading Python…' : stage === 'packages' ? 'Installing packages…' : stage === 'running' ? 'Running…' : '▶ Run'
 
   return (
     <div className="my-3 rounded-lg overflow-hidden border border-zinc-700/50 bg-zinc-950">
@@ -85,9 +116,29 @@ export default function PythonDemoBlock({ code, onChange }: Props) {
           disabled={running}
           className="text-xs px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition-colors"
         >
-          {loadingRuntime ? 'Loading Python…' : running ? 'Running…' : '▶ Run'}
+          {runLabel}
         </button>
       </div>
+
+      {depsEditable ? (
+        <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/30">
+          <label className="block text-[10px] font-mono text-zinc-600 uppercase tracking-wide mb-1">
+            Dependencies (pip, comma-separated — e.g. requests, numpy==1.26.4)
+          </label>
+          <input
+            value={depsText}
+            onChange={(e) => setDepsText(e.target.value)}
+            onBlur={commitDeps}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+            placeholder="none"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 placeholder-zinc-600 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+      ) : dependencies && Object.keys(dependencies).length > 0 ? (
+        <div className="px-4 py-1.5 border-b border-zinc-800 bg-zinc-900/30">
+          <span className="text-[10px] font-mono text-zinc-600">deps: {depsToSpecs(dependencies).join(', ')}</span>
+        </div>
+      ) : null}
 
       <textarea
         value={code}
@@ -108,7 +159,7 @@ export default function PythonDemoBlock({ code, onChange }: Props) {
           ) : output.length > 0 ? (
             <span className="text-zinc-300">{output.join('\n')}</span>
           ) : (
-            <span className="text-zinc-600">{running ? 'Running…' : 'Click Run to execute this script.'}</span>
+            <span className="text-zinc-600">{running ? runLabel : 'Click Run to execute this script.'}</span>
           )}
         </div>
       </div>
