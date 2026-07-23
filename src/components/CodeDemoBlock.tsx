@@ -1,8 +1,12 @@
 'use client'
 
-import { Sandpack } from '@codesandbox/sandpack-react'
-import { zincSandpackTheme } from '@/lib/sandpackTheme'
+import { lazy, Suspense } from 'react'
+import type { SandpackPredefinedTemplate } from '@codesandbox/sandpack-react'
 import type { CodeDemoSpec } from '@/lib/codeDemo'
+import { PYTHON_ENTRY } from '@/lib/codeDemo'
+
+const SandpackDemo = lazy(() => import('./SandpackDemo'))
+const PythonDemoBlock = lazy(() => import('./PythonDemoBlock'))
 
 type Props = {
   spec: string
@@ -29,20 +33,22 @@ export default function CodeDemoBlock({ spec }: Props) {
     )
   }
 
+  if (parsed.template === 'python') {
+    const code = parsed.files[PYTHON_ENTRY] ?? Object.values(parsed.files)[0]
+    return (
+      <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Loading Python demo…</div>}>
+        <PythonDemoBlock code={code} />
+      </Suspense>
+    )
+  }
+
   return (
-    <div className="my-3 rounded-lg overflow-hidden border border-zinc-700/50">
-      <Sandpack
-        template={parsed.template ?? 'react'}
-        theme={zincSandpackTheme}
+    <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Loading live demo…</div>}>
+      <SandpackDemo
+        template={(parsed.template as SandpackPredefinedTemplate) ?? 'react'}
         files={parsed.files}
-        customSetup={parsed.dependencies ? { dependencies: parsed.dependencies } : undefined}
-        options={{
-          showLineNumbers: true,
-          showTabs: Object.keys(parsed.files).length > 1,
-          editorHeight: 360,
-          editorWidthPercentage: 50,
-        }}
+        dependencies={parsed.dependencies}
       />
-    </div>
+    </Suspense>
   )
 }
