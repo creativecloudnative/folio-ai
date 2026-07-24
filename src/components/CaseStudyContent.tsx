@@ -94,7 +94,7 @@ const components: Components = {
     </pre>
   ),
   code: ({ className, children }) => {
-    const lang = /language-(\w+)/.exec(className ?? '')?.[1]
+    const lang = /language-([\w-]+)/.exec(className ?? '')?.[1]
     if (lang === 'mermaid') {
       return (
         <Suspense

@@ -43,7 +43,7 @@ const mdComponents: Components = {
     <pre className="bg-zinc-900 rounded-lg p-4 overflow-x-auto mb-4 border border-zinc-700 text-sm">{children}</pre>
   ),
   code: ({ className, children }) => {
-    const lang = /language-(\w+)/.exec(className ?? '')?.[1]
+    const lang = /language-([\w-]+)/.exec(className ?? '')?.[1]
     if (lang === 'mermaid') {
       return (
         <Suspense fallback={<div className="text-xs text-zinc-500 py-4 text-center">Rendering diagram…</div>}>
