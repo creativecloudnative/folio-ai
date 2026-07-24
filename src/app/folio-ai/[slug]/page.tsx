@@ -70,6 +70,14 @@ function extractExcerpt(content: string, maxLen = 220): string {
   return ''
 }
 
+// Code demos have no prose body (just a title + a fenced spec), so extractExcerpt
+// legitimately finds nothing — give those cards a real description instead of a blank one.
+const CODE_DEMO_EXCERPT = 'Live, runnable code — click to try it in the browser.'
+
+function excerptFor(content: string, type: string): string {
+  return extractExcerpt(content) || (type === 'code-demo' ? CODE_DEMO_EXCERPT : '')
+}
+
 // For prose display: concatenate paragraphs up to maxLen rather than just the first line
 function extractProseBlock(content: string, maxLen = 800): string {
   const parts: string[] = []
@@ -207,7 +215,7 @@ async function buildSections(
             return {
               id: ci.id,
               title: (doc.title as string) || ci.section_label || 'Document',
-              excerpt: doc.content ? extractExcerpt(doc.content as string) : '',
+              excerpt: doc.content ? excerptFor(doc.content as string, comp.type) : '',
               viewer_href: compositionViewerHref(folioSlug, comp),
               published: comp.published,
               display: 'card' as const,
@@ -225,7 +233,7 @@ async function buildSections(
               WHERE owner_id = ${ownerId} AND source = ${'content/' + typeFolder + '/' + comp.slug + '.md'}
               ORDER BY created_at DESC LIMIT 1
             `
-            if (rows[0]?.content) excerpt = extractExcerpt(rows[0].content as string)
+            if (rows[0]?.content) excerpt = excerptFor(rows[0].content as string, comp.type)
           } catch { /* no compiled doc yet */ }
           cards.push({
             id: item.id,
@@ -262,7 +270,7 @@ async function buildSections(
               excerpt: doc.content
                 ? display === 'prose'
                   ? extractProseBlock(doc.content as string)
-                  : extractExcerpt(doc.content as string)
+                  : excerptFor(doc.content as string, docType)
                 : '',
               viewer_href: `/folio-ai/${folioSlug}/doc?source=${encodeURIComponent(item.document_source!)}`,
               published: true,
@@ -326,7 +334,7 @@ async function buildFallbackSections(
         return {
           id: ci.id,
           title: (doc.title as string) || ci.section_label || 'Document',
-          excerpt: doc.content ? extractExcerpt(doc.content as string) : '',
+          excerpt: doc.content ? excerptFor(doc.content as string, comp.type) : '',
           viewer_href: compositionViewerHref(folioSlug, comp),
           published: comp.published,
           display: 'card' as const,
@@ -343,7 +351,7 @@ async function buildFallbackSections(
           AND source = ${'content/' + typeFolder + '/' + comp.slug + '.md'}
           ORDER BY created_at DESC LIMIT 1
         `
-        if (rows[0]?.content) excerpt = extractExcerpt(rows[0].content as string)
+        if (rows[0]?.content) excerpt = excerptFor(rows[0].content as string, comp.type)
       } catch { /* no doc yet */ }
       cards.push({
         id: comp.id,
