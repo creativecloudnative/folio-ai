@@ -1,7 +1,13 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import CodeMirror from '@uiw/react-codemirror'
+import { python } from '@codemirror/lang-python'
+import { EditorView } from '@codemirror/view'
+import { zincCodeMirrorTheme } from '@/lib/codeMirrorTheme'
 import { dependenciesToText, textToDependencies } from '@/lib/codeDemo'
+
+const pythonExtensions = [python(), EditorView.lineWrapping]
 
 // Pinned CDN release — bump deliberately, Pyodide's WASM runtime isn't forward/backward compatible across minors.
 const PYODIDE_VERSION = '0.26.4'
@@ -140,13 +146,17 @@ export default function PythonDemoBlock({ code, onChange, dependencies, onDepend
         </div>
       ) : null}
 
-      <textarea
+      <CodeMirror
         value={code}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(value) => onChange?.(value)}
+        editable={editable}
         readOnly={!editable}
-        spellCheck={false}
-        rows={Math.min(20, Math.max(6, code.split('\n').length))}
-        className={`w-full bg-zinc-950 text-zinc-200 font-mono text-sm px-4 py-3 resize-none focus:outline-none leading-relaxed ${!editable ? 'cursor-text' : ''}`}
+        theme={zincCodeMirrorTheme}
+        extensions={pythonExtensions}
+        basicSetup={{ foldGutter: false, highlightActiveLine: editable, highlightActiveLineGutter: editable }}
+        minHeight="120px"
+        maxHeight="480px"
+        style={{ fontSize: '13px' }}
       />
 
       <div className="border-t border-zinc-800">
