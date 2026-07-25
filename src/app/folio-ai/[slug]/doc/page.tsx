@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { getFolioBySlug } from '@/lib/folios'
 import { resolveStudioOwner } from '@/lib/studio-access'
@@ -24,15 +24,15 @@ export default async function DocViewerPage({ params, searchParams }: Props) {
   if (!folio) notFound()
 
   const isOwner = session?.user?.id === folio.owner_id
-
-  if (!isOwner) {
-    const accessible = await resolveStudioOwner(slug, session)
-    if (!accessible) redirect(`/folio-ai/${slug}`)
-  }
+  // Owners and invited Studio collaborators can preview drafts; anonymous
+  // public visitors only ever see published content — same rule the dedicated
+  // case-studies/architecture viewer routes already apply.
+  const canViewDraft = isOwner || !!(await resolveStudioOwner(slug, session))
 
   const rows = await sql`
     SELECT type, title, content FROM documents
     WHERE owner_id = ${folio.owner_id} AND source = ${source}
+    ${canViewDraft ? sql`` : sql`AND metadata->>'published' = 'true'`}
     ORDER BY created_at ASC
   `
   if (rows.length === 0) notFound()
@@ -48,8 +48,8 @@ export default async function DocViewerPage({ params, searchParams }: Props) {
       type={type}
       source={source}
       isOwner={isOwner}
-      backHref={`/folio-ai/${slug}/design${tab ? `?tab=${tab}` : ''}`}
-      backLabel="Studio"
+      backHref={canViewDraft ? `/folio-ai/${slug}/design${tab ? `?tab=${tab}` : ''}` : `/folio-ai/${slug}`}
+      backLabel={canViewDraft ? 'Studio' : folio.name}
     />
   )
 }
