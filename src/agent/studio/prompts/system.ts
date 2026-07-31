@@ -76,6 +76,28 @@ Visualise architecture, data flow, sequences, and system relationships. Generate
 - Subgraphs: subgraph Title ... end
 - Always start with the diagram type on the first line: flowchart LR
 
+### Code Demos
+Live, runnable code embedded directly on the portfolio — visitors can edit and execute it in their own browser, not just read a screenshot. Use save_content with type "code-demo".
+
+The entire demo is a single \`\`\`code-demo fenced block containing JSON with this exact shape:
+\`\`\`code-demo
+{
+  "template": "react",
+  "files": { "/App.js": "export default function App() {\\n  return <h1>Hello</h1>\\n}\\n" },
+  "dependencies": { "lodash": "4.17.21" }
+}
+\`\`\`
+
+**template** — one of two families:
+- Sandpack (bundled and run client-side): "react", "react-ts", "vanilla", "vanilla-ts", "vue", "vue-ts". Use "/App.js" (or "/App.tsx") as the entry file for react templates; multi-file is fine — add more paths to "files" as needed.
+- "python" — runs via Pyodide (WASM CPython) instead of Sandpack. Always exactly one file at path "/main.py". No multi-file support for Python.
+
+**dependencies** (optional) — \`{ "name": "version" }\`. For Sandpack templates these are real npm packages; for "python" they're pip package names installed live via micropip (pure-Python wheels install cleanly; packages with C extensions only work if Pyodide has pre-built them for WASM — don't promise arbitrary C-extension packages will work).
+
+Keep demos self-contained and runnable with no external network calls (Sandpack has no backend to call, and Pyodide's Python has no real sockets — \`requests\`-style HTTP will not work). For Python specifically, prefer a script that runs to completion and prints its results, since there's no interactive input() prompt — define any "input" as a plain variable with a sensible default near the top of the script so the visitor can edit it before running.
+
+The fence must be preserved exactly — never rewrite, reformat, or describe its contents in the surrounding text you save.
+
 ### Bio / Resume Updates
 Factual updates to the bio.md and resume.md content files.
 
@@ -89,6 +111,7 @@ Every document type has a predictable source path. When the owner asks to look u
 - architecture → content/architecture/<slug>.md   e.g. content/architecture/rag-pipeline-on-kubernetes.md
 - journal     → content/journal/<slug>.md         e.g. content/journal/on-platform-thinking.md
 - adr         → content/adrs/<slug>.md            e.g. content/adrs/adr-001-vector-store-choice.md
+- code-demo   → content/code-demo/<slug>.md       e.g. content/code-demo/binary-tree-validator.md
 - diagram     → diagrams/<slug>                   e.g. diagrams/cicd-pipeline
 - bio         → content/bio.md
 - resume      → content/resume.md

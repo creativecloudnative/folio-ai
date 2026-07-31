@@ -178,6 +178,7 @@ export default function StudioTabs({
   const [active,   setActive]   = useState<Tab>(initialTab)
   const [expanded, setExpanded] = useState(false)
   const [restoredConversation, setRestoredConversation] = useState<RestoredConversation>(null)
+  const [floatingChatOpen, setFloatingChatOpen] = useState(false)
 
   function switchTab(tab: Tab) {
     if (tab !== active) setExpanded(false)
@@ -327,18 +328,9 @@ export default function StudioTabs({
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           {active === 'home'         && <StudioHome switchTab={switchTab} isViewer={isViewer && !fullAccessSlug} folioName={folioName} />}
           {active === 'dashboard'    && <DashboardTab demoSlug={fullAccessSlug} />}
-          {active === 'chat' && (
-            <StudioChat
-              restoredConversation={restoredConversation}
-              onNewConversation={() => setRestoredConversation(null)}
-              onRename={handleRename}
-              initialBalance={initialBalance}
-              isViewer={isViewer || !!fullAccessSlug}
-            />
-          )}
           {active === 'history' && (
             <ConversationHistory
               onRestore={handleRestore}
@@ -368,9 +360,43 @@ export default function StudioTabs({
           {active === 'resumes'      && <ResumeTab      demoSlug={fullAccessSlug} isViewer={!!fullAccessSlug} />}
           {active === 'applications' && <ApplicationsTab demoSlug={fullAccessSlug} isViewer={!!fullAccessSlug} />}
           {active === 'evidence'     && <EvidenceTab     demoSlug={fullAccessSlug} />}
+
+          {/* Studio chat — one persistent instance: fills the tab when active,
+              floats as an overlay panel on every other tab so it's never fully gone. */}
+          <div
+            className={
+              active === 'chat'
+                ? 'absolute inset-0'
+                : floatingChatOpen
+                  ? 'fixed bottom-24 right-6 z-40 w-96 sm:w-[420px] h-[600px] max-h-[70vh] rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col'
+                  : 'hidden'
+            }
+          >
+            <StudioChat
+              restoredConversation={restoredConversation}
+              onNewConversation={() => setRestoredConversation(null)}
+              onRename={handleRename}
+              initialBalance={initialBalance}
+              isViewer={isViewer || !!fullAccessSlug}
+            />
+          </div>
         </div>
       </div>
       </div>
+
+      {/* Floating chat toggle — hidden on the Chat tab itself, where the full view already shows it */}
+      {active !== 'chat' && (
+        <button
+          onClick={() => setFloatingChatOpen((v) => !v)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40 transition-all hover:scale-105 active:scale-95 print:hidden"
+          aria-label={floatingChatOpen ? 'Close assistant' : 'Open assistant'}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          <span className="text-sm font-medium">{floatingChatOpen ? 'Close' : 'Assistant'}</span>
+        </button>
+      )}
     </div>
   )
 }

@@ -126,10 +126,11 @@ export async function publishCompositionById(
   // Code demos aren't narrative content — running them through the AI compiler
   // wraps them in invented prose and, worse, isn't reliable about leaving the
   // ```code-demo fence intact. Publish the source verbatim instead.
+  // ArtifactViewer already renders the composition's title as its own <h1>
+  // above this content, so don't inject a second, identical one here — keep
+  // each item's own heading (the source document's title) as-is instead.
   const markdown = typeSlug === 'code-demo'
-    ? `# ${composition.title}\n\n${itemsWithContent
-        .map((it) => it.content.replace(/^#\s.*\n+/, '').trim())
-        .join('\n\n---\n\n')}`
+    ? itemsWithContent.map((it) => it.content.trim()).join('\n\n---\n\n')
     : await compileWithAI(typeSlug, composition.title, itemsWithContent)
 
   await ingestDocument(

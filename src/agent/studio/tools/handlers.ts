@@ -5,7 +5,7 @@ import { retrieveRelevant, formatChunksForPrompt } from '@/lib/rag'
 import { getCompositions, getCompositionItems, seedCompositionsFromDocuments } from '@/lib/compositions'
 import { publishCompositionById } from '@/lib/publish-composition'
 
-type DocType = 'case-study' | 'architecture' | 'journal' | 'bio' | 'resume' | 'memory' | 'adr' | 'diagram'
+type DocType = 'case-study' | 'architecture' | 'journal' | 'bio' | 'resume' | 'memory' | 'adr' | 'diagram' | 'code-demo'
 
 export async function executeStudioTool(
   name: string,
@@ -25,6 +25,7 @@ export async function executeStudioTool(
         : type === 'architecture' ? `architecture/${slug}.md`
         : type === 'journal'    ? `journal/${slug}.md`
         : type === 'adr'        ? `adrs/${slug}.md`
+        : type === 'code-demo'  ? `code-demo/${slug}.md`
         : `${type}.md`
 
       const source = `content/${relPath}`
